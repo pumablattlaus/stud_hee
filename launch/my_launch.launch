@@ -1,0 +1,8 @@
+<?xml version="1.0" ?>
+<!-- NOT WORKIN!!! -->
+<launch>
+    <include file="$(find mir_launch_hardware)/launch/mir.launch" pass_all_args="true">
+        <remap from="move_base_node/global_costmap/costmap_updates" to="mycostmap_update"/>
+    </include>
+
+</launch>
