@@ -8,7 +8,20 @@ project(stud_hee)
 ## if COMPONENTS list like find_package(catkin REQUIRED COMPONENTS xyz)
 ## is used, also find other catkin packages
 find_package(catkin REQUIRED COMPONENTS
-  roscpp
+controller_interface
+controller_manager
+franka_hw
+franka_msgs
+geometry_msgs
+message_generation
+pluginlib
+realtime_tools
+roscpp
+sensor_msgs
+tf
+tf2_msgs
+rospy
+std_msgs
   rospy
   std_msgs
   nav_msgs
@@ -18,6 +31,7 @@ find_package(catkin REQUIRED COMPONENTS
 
 ## System dependencies are found with CMake's conventions
 # find_package(Boost REQUIRED COMPONENTS system)
+find_package(Franka 0.7.0 REQUIRED)
 find_package(Eigen3 REQUIRED)
 include_directories(SYSTEM ${EIGEN3_INCLUDE_DIRS})
 
@@ -112,6 +126,18 @@ catkin_package(
 #  LIBRARIES stud_hee
 #  CATKIN_DEPENDS roscpp rospy std_msgs
 #  DEPENDS system_lib
+  INCLUDE_DIRS include
+  LIBRARIES stud_hee
+  CATKIN_DEPENDS geometry_msgs moveit roscpp rospy std_msgs controller_interface
+    franka_hw
+    franka_msgs
+    geometry_msgs
+    pluginlib
+    realtime_tools
+    roscpp
+    sensor_msgs
+    tf2_msgs
+  DEPENDS Franka
 )
 
 ###########
@@ -127,7 +153,7 @@ include_directories(
 
 ## Declare a C++ library
 # add_library(${PROJECT_NAME}
-#   src/${PROJECT_NAME}/mypackage.cpp
+#   src/${PROJECT_NAME}/stud_hee.cpp
 # )
 
 ## Add cmake target dependencies of the library
@@ -141,6 +167,17 @@ include_directories(
 # add_executable(${PROJECT_NAME}_node src/my_package_node.cpp)
 # add_executable(collision_obj src/collision_obj.cpp)
 
+add_executable(panda_move_vel_iface src/move_w_velocityinterface.cpp)
+target_link_libraries(panda_move_vel_iface 
+  ${Franka_LIBRARIES}
+  ${catkin_LIBRARIES}
+)
+
+add_executable(panda_move_vel_iface_topic src/panda_topic_velIface.cpp)
+target_link_libraries(panda_move_vel_iface_topic 
+  ${Franka_LIBRARIES}
+  ${catkin_LIBRARIES}
+)
 ## Rename C++ executable without prefix
 ## The above recommended prefix causes long target names, the following renames the
 ## target back to the shorter version for ease of user use
