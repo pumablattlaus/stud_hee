@@ -71,6 +71,10 @@ include_directories(SYSTEM ${EIGEN3_INCLUDE_DIRS})
 #   Message1.msg
 #   Message2.msg
 # )
+add_message_files(
+  FILES
+  MyVelocity.msg
+)
 
 ## Generate services in the 'srv' folder
 # add_service_files(
@@ -87,10 +91,10 @@ include_directories(SYSTEM ${EIGEN3_INCLUDE_DIRS})
 # )
 
 ## Generate added messages and services with any dependencies listed here
-# generate_messages(
-#   DEPENDENCIES
-#   std_msgs
-# )
+generate_messages(
+  DEPENDENCIES
+  std_msgs
+)
 
 ################################################
 ## Declare ROS dynamic reconfigure parameters ##
@@ -127,8 +131,8 @@ catkin_package(
 #  CATKIN_DEPENDS roscpp rospy std_msgs
 #  DEPENDS system_lib
   INCLUDE_DIRS include
-  LIBRARIES stud_hee
-  CATKIN_DEPENDS geometry_msgs moveit roscpp rospy std_msgs controller_interface
+  LIBRARIES ${PROJECT_NAME}
+  CATKIN_DEPENDS geometry_msgs moveit roscpp rospy std_msgs controller_interface message_runtime
     franka_hw
     franka_msgs
     geometry_msgs
@@ -147,14 +151,14 @@ catkin_package(
 ## Specify additional locations of header files
 ## Your package locations should be listed before other locations
 include_directories(
-# include
+  include
   ${catkin_INCLUDE_DIRS}
 )
 
 ## Declare a C++ library
-# add_library(${PROJECT_NAME}
-#   src/${PROJECT_NAME}/stud_hee.cpp
-# )
+add_library(${PROJECT_NAME}
+  src/my_cartesian_velocity_controller.cpp
+)
 
 ## Add cmake target dependencies of the library
 ## as an example, code may need to be generated before libraries
@@ -173,11 +177,11 @@ target_link_libraries(panda_move_vel_iface
   ${catkin_LIBRARIES}
 )
 
-add_executable(panda_move_vel_iface_topic src/panda_topic_velIface.cpp)
-target_link_libraries(panda_move_vel_iface_topic 
-  ${Franka_LIBRARIES}
-  ${catkin_LIBRARIES}
-)
+#add_executable(panda_move_vel_iface_topic src/panda_topic_velIface.cpp)
+#target_link_libraries(panda_move_vel_iface_topic 
+#  ${Franka_LIBRARIES}
+#  ${catkin_LIBRARIES}
+#)
 ## Rename C++ executable without prefix
 ## The above recommended prefix causes long target names, the following renames the
 ## target back to the shorter version for ease of user use
@@ -192,6 +196,7 @@ target_link_libraries(panda_move_vel_iface_topic
 # target_link_libraries(${PROJECT_NAME}_node
 #   ${catkin_LIBRARIES}
 # )
+target_link_libraries(${PROJECT_NAME} ${catkin_LIBRARIES})
 
 #############
 ## Install ##
@@ -234,7 +239,20 @@ target_link_libraries(panda_move_vel_iface_topic
 #   # myfile2
 #   DESTINATION ${CATKIN_PACKAGE_SHARE_DESTINATION}
 # )
+install(
+  TARGETS ${PROJECT_NAME}
+  ARCHIVE DESTINATION ${CATKIN_PACKAGE_LIB_DESTINATION}
+  LIBRARY DESTINATION ${CATKIN_PACKAGE_LIB_DESTINATION}
+  RUNTIME DESTINATION ${CATKIN_GLOBAL_BIN_DESTINATION}
+)
+install(
+  DIRECTORY include/${PROJECT_NAME}/
+  DESTINATION ${CATKIN_PACKAGE_INCLUDE_DESTINATION}
+)
 
+install(FILES frmy_panda_controllers_plugin.xml
+  DESTINATION ${CATKIN_PACKAGE_SHARE_DESTINATION}
+)
 #############
 ## Testing ##
 #############
