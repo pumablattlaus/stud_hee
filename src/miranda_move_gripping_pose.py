@@ -23,6 +23,9 @@ class Nav2Goal(object):
     def __init__(self):
         self.x = None
         self.y = None
+        self.status = None    # if robot has no status/goal := 10
+        self.id = 0
+        self.ready = True
 
         # Relative stable Poses to work from (use joint angles and relative Pose) 
         self.posesPandaRel = []
@@ -32,18 +35,31 @@ class Nav2Goal(object):
 
         rospy.init_node('my_moveGoal', anonymous=False)
         self.pub = rospy.Publisher('/move_base_simple/goal', PoseStamped, queue_size=1) 
-        sub_odom = rospy.Subscriber('/amcl_pose', PoseWithCovarianceStamped, self.odom_callback) # get the messages of the robot pose in frame
+        # sub_odom = rospy.Subscriber('/amcl_pose', PoseWithCovarianceStamped, self.odom_callback) # get the messages of the robot pose in frame
+        sub_odom = rospy.Subscriber('/robot_pose', Pose, self.odom_callback)
+        sub_status = rospy.Subscriber('/move_base/status', GoalStatusArray, self.status_callback)
+    
+    def status_callback(self, msg=GoalStatusArray()):
+        if len(msg.status_list):
+            id = msg.status_list[0].goal_id.id
+            self.status=msg.status_list[0].status
+            if id != self.id:    
+                self.id = id
+                self.ready = True
+        else:
+            self.status=10
 
         ############ -- get the current pose of the robot -- #################
     def odom_callback(self, msg):
-        self.x = msg.pose.pose.position.x
-        self.y = msg.pose.pose.position.y
+        self.x = msg.position.x
+        self.y = msg.position.y
 
-        rospy.loginfo("------------------------------------------------")
-        rospy.loginfo("pose x = " + str(self.x))
-        rospy.loginfo("pose y = " + str(self.y))
+        # rospy.loginfo("------------------------------------------------")
+        # rospy.loginfo("pose x = " + str(self.x))
+        # rospy.loginfo("pose y = " + str(self.y))
 
     def sendGoalPos(self, pose):
+        self.ready = False
         poseMsg = PoseStamped()
         poseMsg.header.frame_id = "map"
         poseMsg.pose = pose
@@ -58,7 +74,7 @@ class Nav2Goal(object):
         print("Orientation: 0-360")
         z = float(input("Z= "))
 
-        z=(z%360)/360
+        z=(z%360)/360*2-1
         w = math.sqrt(1-z**2)
 
         pose = Pose()
@@ -96,4 +112,12 @@ if __name__ == '__main__':
     point = Point(*pos)
 
     while not rospy.is_shutdown():
+        if not my_nav.ready or my_nav.status < 3:
+            continue
+        if my_nav.status == 4:
+            rospy.loginfo("Goal not reachable!")
+        
+        rospy.loginfo("Status is: " + str(my_nav.status))
         my_nav.getSendGoal()
+        # rate.sleep()
+        time.sleep(0.5)
