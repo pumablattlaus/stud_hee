@@ -169,7 +169,8 @@ add_library(${PROJECT_NAME}
 ## With catkin_make all packages are built within a single CMake context
 ## The recommended prefix ensures that target names across packages don't collide
 # add_executable(${PROJECT_NAME}_node src/my_package_node.cpp)
-# add_executable(collision_obj src/collision_obj.cpp)
+add_executable(collision_obj src/collision_obj.cpp)
+target_link_libraries(collision_obj ${catkin_LIBRARIES})
 
 add_executable(panda_move_vel_iface src/move_w_velocityinterface.cpp)
 target_link_libraries(panda_move_vel_iface 
