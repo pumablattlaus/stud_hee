@@ -20,12 +20,15 @@ class Nav2Goal(object):
 
         rospy.init_node('my_moveGoal', anonymous=False)
         self.pub = rospy.Publisher('/move_base_simple/goal', PoseStamped, queue_size=1) 
-        sub_odom = rospy.Subscriber('/amcl_pose', PoseWithCovarianceStamped, self.odom_callback) # get the messages of the robot pose in frame
+        # sub_odom = rospy.Subscriber('/amcl_pose', PoseWithCovarianceStamped, self.odom_callback) # get the messages of the robot pose in frame
+        sub_odom = rospy.Subscriber('/robot_pose', Pose, self.odom_callback)
 
         ############ -- get the current pose of the robot -- #################
     def odom_callback(self, msg):
-        self.x = msg.pose.pose.position.x
-        self.y = msg.pose.pose.position.y
+        # self.x = msg.pose.pose.position.x
+        # self.y = msg.pose.pose.position.y
+        self.x = msg.position.x
+        self.y = msg.position.y
 
         rospy.loginfo("------------------------------------------------")
         rospy.loginfo("pose x = " + str(self.x))
