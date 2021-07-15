@@ -20,7 +20,7 @@ class myPose(Pose):
 
 class Nav2Goal(object):
 
-    def __init__(self):
+    def __init__(self, mir_prefix=""):
         self.x = None
         self.y = None
         self.status = None    # if robot has no status/goal := 10
@@ -34,10 +34,10 @@ class Nav2Goal(object):
         self.posesPandaRel.append(myPose((0.2, -0.6, 0)))
 
         rospy.init_node('my_moveGoal', anonymous=False)
-        self.pub = rospy.Publisher('/move_base_simple/goal', PoseStamped, queue_size=1) 
+        self.pub = rospy.Publisher(mir_prefix + '/move_base_simple/goal', PoseStamped, queue_size=1) 
         # sub_odom = rospy.Subscriber('/amcl_pose', PoseWithCovarianceStamped, self.odom_callback) # get the messages of the robot pose in frame
-        sub_odom = rospy.Subscriber('/robot_pose', Pose, self.odom_callback)
-        sub_status = rospy.Subscriber('/move_base/status', GoalStatusArray, self.status_callback)
+        sub_odom = rospy.Subscriber(mir_prefix + '/robot_pose', Pose, self.odom_callback)
+        sub_status = rospy.Subscriber(mir_prefix+'/move_base/status', GoalStatusArray, self.status_callback)
     
     def status_callback(self, msg=GoalStatusArray()):
         if len(msg.status_list):
@@ -105,7 +105,11 @@ class Nav2Goal(object):
 
 
 if __name__ == '__main__':
-    my_nav = Nav2Goal()
+    if len(sys.argv) > 1:
+        prefix = sys.argv[1]    # /miranda/mir
+    else:
+        prefix = ''
+    my_nav = Nav2Goal(prefix)
     rate = rospy.Rate(0.5)
 
     pos=(0,0,0)
