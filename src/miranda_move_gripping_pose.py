@@ -11,12 +11,13 @@ import sys
 import time
 import numpy as np
 import math
+from my_functions import myPoint, myPose
 
-class myPose(Pose):
-    def __init__(self, pos=(0,0,0), quatern = (0, 0, 0, 1)):
-        point = Point(*pos)
-        orient = Quaternion(*quatern)
-        super(myPose, self).__init__(point, orient)
+# class myPose(Pose):
+#     def __init__(self, pos=(0,0,0), quatern = (0, 0, 0, 1)):
+#         point = Point(*pos)
+#         orient = Quaternion(*quatern)
+#         super(myPose, self).__init__(point, orient)
 
 class Nav2Goal(object):
 
@@ -67,9 +68,13 @@ class Nav2Goal(object):
         self.pub.publish(poseMsg)
 
     def getSendGoal(self):
+        pose = self.getGoalCommandLine()
+        self.sendGoalPos(pose)
+        
+    def getGoalCommandLine(self):
         print("Position: ")
-        x = int(input("X= "))
-        y = int(input("Y= "))
+        x = float(input("X= "))
+        y = float(input("Y= "))
 
         print("Orientation: 0-360")
         z = float(input("Z= "))
@@ -77,13 +82,13 @@ class Nav2Goal(object):
         z=(z%360)/360*2-1
         w = math.sqrt(1-z**2)
 
-        pose = Pose()
+        pose = myPose()
         pose.position.x = x
         pose.position.y = y
         pose.orientation.z = z
         pose.orientation.w = w
-
-        self.sendGoalPos(pose)
+        
+        return pose
 
     def goalReached():
         #  * /mobile_base_controller/cmd_vel [geometry_msgs/Twist]
@@ -98,8 +103,15 @@ class Nav2Goal(object):
         pass
 
 
-    def calculateMirGrippingPose(self, gripPose):
+    def calculateMirGrippingPose(self, gripPose=Pose()):
         mirPose = Pose()
+        mirPose.position = gripPose.position - self.posesPandaRel[0].position
+        mirPose.orientation.z = 1
+        mirPose.orientation.w = 0
+        
+        return mirPose
+        
+        
 
 
 
@@ -122,6 +134,10 @@ if __name__ == '__main__':
             rospy.loginfo("Goal not reachable!")
         
         rospy.loginfo("Status is: " + str(my_nav.status))
-        my_nav.getSendGoal()
+        # my_nav.getSendGoal()
+        mir_pose = my_nav.calculateMirGrippingPose(my_nav.getGoalCommandLine())
+        rospy.loginfo("Mir_pose is: ")
+        rospy.loginfo(mir_pose)
+        my_nav.sendGoalPos(mir_pose)
         # rate.sleep()
         time.sleep(0.5)
