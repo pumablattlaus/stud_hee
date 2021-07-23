@@ -16,12 +16,6 @@ import numpy as np
 import math
 from my_functions import myPoint, myPose, pandaGoals, PandaMove, MirNav2Goal
 
-# class myPose(Pose):
-#     def __init__(self, pos=(0,0,0), quatern = (0, 0, 0, 1)):
-#         point = Point(*pos)
-#         orient = Quaternion(*quatern)
-#         super(myPose, self).__init__(point, orient)
-
 
 class MirandaNav2Goal(MirNav2Goal):
     def __init__(self, mir_prefix="", panda_prefix="", panda_description="robot_description"):
@@ -29,8 +23,10 @@ class MirandaNav2Goal(MirNav2Goal):
         self.panda = PandaMove("panda_arm", ns=panda_prefix, robot_description=panda_description)
         # Relative stable Poses to work from (use joint angles and relative Pose) 
         self.pandaRelative = []
-        p1 = myPose((0.656036424314, -0.0597577841713, -0.103558385398), (-0.909901224555, 0.41268467068, -0.023065127793, 0.0352011934197))
-        a1 = [-0.198922703533319, 1.3937412735955756, 0.11749296106956011, -1.312658217933717, -0.1588243463469876, 2.762937863667806, 0.815807519980951]
+        p1 = myPose((0.656036424314, -0.0597577841713, -0.103558385398), (-0.909901224555, 0.41268467068,
+                                                                          -0.023065127793, 0.0352011934197))
+        a1 = [-0.198922703533319, 1.3937412735955756, 0.11749296106956011, -1.312658217933717, -0.1588243463469876,
+              2.762937863667806, 0.815807519980951]
         self.pandaRelative.append(pandaGoals(p1, a1))
 
     def calculateMirGrippingPose(self, gripPose=myPose(), pose_num=0):
@@ -38,52 +34,36 @@ class MirandaNav2Goal(MirNav2Goal):
         mirPose.position = gripPose.position - self.pandaRelative[pose_num].pose_relative.position
         mirPose.orientation.z = 1
         mirPose.orientation.w = 0
-        
+
         return mirPose
-    
+
     def movePanda(self, pose_num=0):
-        target=self.pandaRelative[pose_num].axis_goal
+        target = self.pandaRelative[pose_num].axis_goal
         self.panda.move_group.set_joint_value_target(target)
         plan = self.panda.move_group.plan()
         # plan = panda_robot.velocity_scale(plan, 0.9)
         self.panda.move_group.execute(plan, wait=True)
 
 
-
 if __name__ == '__main__':
-    
+
     # if len(sys.argv) > 1:
-        # mir_prefix = sys.argv[1]    # /miranda/mir
+    # mir_prefix = sys.argv[1]    # /miranda/mir
     if len(sys.argv) > 1 and sys.argv[1] == "miranda":
         mir_prefix = "/miranda/mir"
         panda_prefix = "/miranda/panda"
-        panda_description="/miranda/panda/robot_description"
+        panda_description = "/miranda/panda/robot_description"
     else:
         mir_prefix = ""
         panda_prefix = ""
-        panda_description="robot_description"
+        panda_description = "robot_description"
         rospy.loginfo("No prefix is set. pass arggument <miranda> for use with miranda!")
-        
-    # panda_robot = PandaMove("panda_arm", ns=panda_prefix, robot_description=panda_description)
-    # # target = [-2.3975483592199653, 0.005740540426159113, -0.8940702379807232, -1.889888072013855, -0.06544553327560425, 1.8750191038037525, -2.5427091833628674]
-    # # target = [-2.3975483592199653, 0.005740540426159113, -0.8940702379807232, -1.889888072013855, -0.06544553327560425, 1.8750191038037525, -1.5427091833628674]
-    # # target = [-0.09165325995045537, -0.1307664982896102, -0.08691672911214791, -1.2039535559629443, -0.058938511593474276, 1.7850536203251945, -1.5727488613542584]
-    # panda_robot.move_group.set_joint_value_target(target)
-    # panda_robot.move_group.set_goal_joint_tolerance(0.01)
-    
-    # plan = panda_robot.move_group.plan()
-    # plan = panda_robot.velocity_scale(plan, 0.9)
-    # panda_robot.move_group.execute(plan, wait=True)
-    
-        
-    # my_nav = MirandaNav2Goal(mir_prefix)
-    
+
     miranda = MirandaNav2Goal(mir_prefix, panda_prefix, panda_description)
-    
-    
+
     rate = rospy.Rate(0.5)
 
-    pos=(0,0,0)
+    pos = (0, 0, 0)
     point = Point(*pos)
 
     while not rospy.is_shutdown():
@@ -91,10 +71,10 @@ if __name__ == '__main__':
             continue
         if miranda.status == 4:
             rospy.loginfo("Goal not reachable!")
-        
+
         rospy.loginfo("Status is: " + str(miranda.status))
         # my_nav.getSendGoal()
-        goal_pos=miranda.getGoalCommandLine()
+        goal_pos = miranda.getGoalCommandLine()
         mir_pose = miranda.calculateMirGrippingPose(goal_pos)
         rospy.loginfo("Mir_pose is: ")
         rospy.loginfo(mir_pose)
@@ -105,10 +85,8 @@ if __name__ == '__main__':
         miranda.movePanda(0)
         # miranda.sendGoalPos(goal_pos)
         # TODO: use real mir pose (miranda.mirPose)
-        miranda.panda.movePose(miranda.pandaRelative[0].calcRelGoal(mir_pose))
+        miranda.panda.movePose(miranda.pandaRelative[0].calcRelGoal(miranda.mirPose))
         rospy.loginfo("GoalPose is: ")
         rospy.loginfo(goal_pos)
         # rate.sleep()
         time.sleep(0.1)
-        
-        
