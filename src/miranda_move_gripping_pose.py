@@ -1,123 +1,92 @@
 #!/usr/bin/env python
+# coding=latin-1
 
 import rospy
+import moveit_commander
 import actionlib
 from move_base_msgs.msg import MoveBaseAction, MoveBaseGoal
 from math import radians, degrees
 from actionlib_msgs.msg import *
 from geometry_msgs.msg import PoseWithCovarianceStamped, PoseStamped, Point, Quaternion, Twist, Pose
 from nav_msgs.msg import Odometry
+import moveit_msgs.msg
 import sys
 import time
 import numpy as np
 import math
+from my_functions import myPoint, myPose, pandaGoals, PandaMove, MirNav2Goal
 
-class myPose(Pose):
-    def __init__(self, pos=(0,0,0), quatern = (0, 0, 0, 1)):
-        point = Point(*pos)
-        orient = Quaternion(*quatern)
-        super(myPose, self).__init__(point, orient)
 
-class Nav2Goal(object):
-
-    def __init__(self):
-        self.x = None
-        self.y = None
-        self.status = None    # if robot has no status/goal := 10
-        self.id = 0
-        self.ready = True
-
+class MirandaNav2Goal(MirNav2Goal):
+    def __init__(self, mir_prefix="", panda_prefix="", panda_description="robot_description"):
+        super(MirandaNav2Goal, self).__init__(mir_prefix=mir_prefix)
+        self.panda = PandaMove("panda_arm", ns=panda_prefix, robot_description=panda_description)
         # Relative stable Poses to work from (use joint angles and relative Pose) 
-        self.posesPandaRel = []
-        self.posesPandaRel.append(myPose((0.5, 0, 0)))
-        self.posesPandaRel.append(myPose((0.2, 0.6, 0)))
-        self.posesPandaRel.append(myPose((0.2, -0.6, 0)))
+        self.pandaRelative = []
+        p1 = myPose((0.656036424314, -0.0597577841713, -0.103558385398), (-0.909901224555, 0.41268467068,
+                                                                          -0.023065127793, 0.0352011934197))
+        a1 = [-0.198922703533319, 1.3937412735955756, 0.11749296106956011, -1.312658217933717, -0.1588243463469876,
+              2.762937863667806, 0.815807519980951]
+        self.pandaRelative.append(pandaGoals(p1, a1))
 
-        rospy.init_node('my_moveGoal', anonymous=False)
-        self.pub = rospy.Publisher('/move_base_simple/goal', PoseStamped, queue_size=1) 
-        # sub_odom = rospy.Subscriber('/amcl_pose', PoseWithCovarianceStamped, self.odom_callback) # get the messages of the robot pose in frame
-        sub_odom = rospy.Subscriber('/robot_pose', Pose, self.odom_callback)
-        sub_status = rospy.Subscriber('/move_base/status', GoalStatusArray, self.status_callback)
-    
-    def status_callback(self, msg=GoalStatusArray()):
-        if len(msg.status_list):
-            id = msg.status_list[0].goal_id.id
-            self.status=msg.status_list[0].status
-            if id != self.id:    
-                self.id = id
-                self.ready = True
-        else:
-            self.status=10
+    def calculateMirGrippingPose(self, gripPose=myPose(), pose_num=0):
+        mirPose = myPose()
+        mirPose.position = gripPose.position - self.pandaRelative[pose_num].pose_relative.position
+        mirPose.orientation.z = 1
+        mirPose.orientation.w = 0
 
-        ############ -- get the current pose of the robot -- #################
-    def odom_callback(self, msg):
-        self.x = msg.position.x
-        self.y = msg.position.y
+        return mirPose
 
-        # rospy.loginfo("------------------------------------------------")
-        # rospy.loginfo("pose x = " + str(self.x))
-        # rospy.loginfo("pose y = " + str(self.y))
-
-    def sendGoalPos(self, pose):
-        self.ready = False
-        poseMsg = PoseStamped()
-        poseMsg.header.frame_id = "map"
-        poseMsg.pose = pose
-
-        self.pub.publish(poseMsg)
-
-    def getSendGoal(self):
-        print("Position: ")
-        x = int(input("X= "))
-        y = int(input("Y= "))
-
-        print("Orientation: 0-360")
-        z = float(input("Z= "))
-
-        z=(z%360)/360*2-1
-        w = math.sqrt(1-z**2)
-
-        pose = Pose()
-        pose.position.x = x
-        pose.position.y = y
-        pose.orientation.z = z
-        pose.orientation.w = w
-
-        self.sendGoalPos(pose)
-
-    def goalReached():
-        #  * /mobile_base_controller/cmd_vel [geometry_msgs/Twist]
-        # * /move_base/feedback [move_base_msgs/MoveBaseActionFeedback]
-        # * /move_base/goal [move_base_msgs/MoveBaseActionGoal]
-        # * /move_base/result [move_base_msgs/MoveBaseActionResult]
-        # * /move_base/status [actionlib_msgs/GoalStatusArray] == status_list --> letzter Status
-            # GoalStatusArray.status_list.text=="Goal reached" oder .status == 3?
-                # "Failed to find a valid plan. Even after executing recovery behaviors." .status==4
-                # while .status < 3: sleep
-            # sonst: dist(soll-ist < accuracy) via /robot_pose
-        pass
-
-
-    def calculateMirGrippingPose(self, gripPose):
-        mirPose = Pose()
-
-
+    def movePanda(self, pose_num=0):
+        target = self.pandaRelative[pose_num].axis_goal
+        self.panda.move_group.set_joint_value_target(target)
+        plan = self.panda.move_group.plan()
+        # plan = panda_robot.velocity_scale(plan, 0.9)
+        self.panda.move_group.execute(plan, wait=True)
 
 
 if __name__ == '__main__':
-    my_nav = Nav2Goal()
+
+    # if len(sys.argv) > 1:
+    # mir_prefix = sys.argv[1]    # /miranda/mir
+    if len(sys.argv) > 1 and sys.argv[1] == "miranda":
+        mir_prefix = "/miranda/mir"
+        panda_prefix = "/miranda/panda"
+        panda_description = "/miranda/panda/robot_description"
+    else:
+        mir_prefix = ""
+        panda_prefix = ""
+        panda_description = "robot_description"
+        rospy.loginfo("No prefix is set. pass arggument <miranda> for use with miranda!")
+
+    miranda = MirandaNav2Goal(mir_prefix, panda_prefix, panda_description)
+
     rate = rospy.Rate(0.5)
 
-    pos=(0,0,0)
+    pos = (0, 0, 0)
     point = Point(*pos)
 
     while not rospy.is_shutdown():
-        if not my_nav.ready or my_nav.status < 3:
+        if not miranda.is_ready():
             continue
-        if my_nav.status == 4:
+        if miranda.status == 4:
             rospy.loginfo("Goal not reachable!")
-        
-        rospy.loginfo("Status is: " + str(my_nav.status))
-        my_nav.getSendGoal()
-        # rate.sleep()
+
+        rospy.loginfo("Status is: " + str(miranda.status))
+        # my_nav.getSendGoal()
+        goal_pos = miranda.getGoalCommandLine()
+        mir_pose = miranda.calculateMirGrippingPose(goal_pos)
+        rospy.loginfo("Mir_pose is: ")
+        rospy.loginfo(mir_pose)
+        miranda.sendGoalPos(mir_pose)
         time.sleep(0.5)
+        while not miranda.is_ready():
+            time.sleep(0.1)
+        miranda.movePanda(0)
+        # miranda.sendGoalPos(goal_pos)
+        # TODO: use real mir pose (miranda.mirPose)
+        miranda.panda.movePose(miranda.pandaRelative[0].calcRelGoal(miranda.mirPose))
+        rospy.loginfo("GoalPose is: ")
+        rospy.loginfo(goal_pos)
+        # rate.sleep()
+        time.sleep(0.1)
