@@ -91,10 +91,12 @@ class pandaGoals(object):
         self.axis_goal = axis_goal
         self.movement = None
 
-    def calcRelGoal(self, grab_pose=myPose(), mir_pose=myPose()):
+    def calcRelGoal(self, mir_pose=myPose(), grab_pose=None):
         # vec_move = myPose()
         # pose_current = mir_pose+self.pose_relative
         # vec_move = grab_pose-pose_current
+        if grab_pose is None:
+            grab_pose = self.pose_relative
         vec_move = grab_pose - mir_pose
 
         return vec_move
@@ -133,18 +135,19 @@ class PandaMove(object):
 
         return plan
 
-    def movePose(pose=myPose):
+    def movePose(self, pose=myPose):
+        pose=Pose(pose.position, pose.orientation)
         self.move_group.set_pose_target(pose)
         # call the planner to compute the plan and execute it.
         # plan = move_group.go(wait=True)
-        plan = move_group.plan()  # plan can get altered
-        plan = velocity_scale(plan, 1)
-        move_group.execute(plan, wait=True)
+        plan = self.move_group.plan()  # plan can get altered
+        plan = self.velocity_scale(plan, 1)
+        self.move_group.execute(plan, wait=True)
         # Calling `stop()` ensures that there is no residual movement
-        move_group.stop()
+        self.move_group.stop()
         # It is always good to clear your targets after planning with poses.
         # Note: there is no equivalent function for clear_joint_value_targets()
-        move_group.clear_pose_targets()
+        self.move_group.clear_pose_targets()
 
 
 class MirNav2Goal(object):
@@ -214,7 +217,7 @@ class MirNav2Goal(object):
         return pose
 
     def is_ready(self):
-        if self.ready or self.status >= 3:
+        if self.ready and self.status >= 3:
             return True
         return False
 
