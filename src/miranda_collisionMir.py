@@ -23,16 +23,25 @@ except: # For Python 2 compatibility
 from std_msgs.msg import String
 from moveit_commander.conversions import pose_to_list
 
+if len(sys.argv) > 1:
+  tf_prefix = sys.argv[1]
+else:
+  tf_prefix = ""
+
+robot_description = tf_prefix+"/robot_description"
+
 rospy.init_node('add_collision_mir', anonymous=True)
 
 safety_dists = np.array([0.0, 0.0, 0.1])
 mir_dim = np.array([0.88, 0.6, 0.45])
 box_dim = mir_dim+safety_dists
 
-robot = moveit_commander.RobotCommander()
+robot = moveit_commander.RobotCommander(robot_description=robot_description,ns=tf_prefix)
 
 p = geom_msg.PoseStamped()
-p.header.frame_id = robot.get_planning_frame()
+p.header.frame_id = "panda_link0" # robot.get_planning_frame()
+
+print(p)
 
 # ungefahere pose von mir:
 p.pose.orientation.w = 1
@@ -41,6 +50,6 @@ p.pose.position.x = -mir_dim[0]/2 + 0.25
 p.pose.position.y = -mir_dim[1]/2+0.2
 
 
-scene = moveit_commander.PlanningSceneInterface()
+scene = moveit_commander.PlanningSceneInterface(ns=tf_prefix)
 rospy.sleep(2)
 scene.attach_box("panda_link0", 'mir', p, box_dim, touch_links=['panda_link0', 'panda_link1'])
