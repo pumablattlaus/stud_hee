@@ -4,23 +4,23 @@ import copy
 import math
 import rospy
 import moveit_commander
-# import actionlib
-from move_base_msgs.msg import MoveBaseAction, MoveBaseGoal
-from geometry_msgs.msg import PoseWithCovarianceStamped, PoseStamped, Point, Quaternion, Twist, Pose
+from geometry_msgs.msg import PoseStamped, Point, Quaternion, Twist, Pose
 import moveit_msgs.msg
 from actionlib_msgs.msg import *
+import numpy as np
+import quaternion
 
 
-class myPoint(Point):
+class MyPoint(Point):
     def __init__(self, pos=(0, 0, 0)):
         if type(pos) == Point:
             # super(myPoint, self).__init__(pos)
             self = pos
         else:
-            super(myPoint, self).__init__(*pos)
+            super(MyPoint, self).__init__(*pos)
 
     def __add__(self, p2):
-        p_out = myPoint()
+        p_out = MyPoint()
         p_out.x = self.x + p2.x
         p_out.y = self.y + p2.y
         p_out.z = self.z + p2.z
@@ -28,7 +28,7 @@ class myPoint(Point):
         return p_out
 
     def __sub__(self, p2):
-        p_out = myPoint()
+        p_out = MyPoint()
         p_out.x = self.x - p2.x
         p_out.y = self.y - p2.y
         p_out.z = self.z - p2.z
@@ -36,36 +36,33 @@ class myPoint(Point):
         return p_out
 
 
-class myOrient(Quaternion):
+class MyOrient(Quaternion):
     def __init__(self, quatern=(0, 0, 0, 1)):
         if type(quatern) == Quaternion:
             self = quatern
         else:
-            super(myOrient, self).__init__(*quatern)
+            super(MyOrient, self).__init__(*quatern)
 
     def __add__(self, o2):
-        o_out = myOrient()
-        o_out.x = self.x + o2.x
-        o_out.y = self.y + o2.y
-        o_out.z = self.z + o2.z
-        o_out.w = self.w + o2.w
-
+        q1 = quaternion.quaternion(*self.__reduce__()[2])
+        q2 = quaternion.quaternion(*o2.__reduce__()[2])
+        q3 = q1*q2
+        o_out = MyOrient(q3.__reduce__()[1])
         return o_out
 
     def __sub__(self, o2):
-        o_out = myOrient()
-        o_out.x = self.x - o2.x
-        o_out.y = self.y - o2.y
-        o_out.z = self.z - o2.z
-        o_out.w = self.w - o2.w
-
+        q1 = quaternion.quaternion(*self.__reduce__()[2])
+        q2 = quaternion.quaternion(*o2.__reduce__()[2])
+        # q3 = quaternion.quaternion(np.quaternion.conjugate(q1) * q2)
+        q3 = q1.conjugate()*q2
+        o_out = MyOrient(q3.__reduce__()[1])
         return o_out
 
 
 class MyPose(Pose):
     def __init__(self, pos=(0, 0, 0), quatern=(0, 0, 0, 1)):
-        point = myPoint(pos)
-        orient = myOrient(quatern)
+        point = MyPoint(pos)
+        orient = MyOrient(quatern)
         super(MyPose, self).__init__(point, orient)
 
     def __add__(self, p2):
@@ -151,7 +148,7 @@ class PandaMove(object):
 
     def movePoseLin(self, pose=MyPose(), vel=1):
         waypoints = []  # ggf in 90 deg zu Orientierung EEF und dann Rest nur in x-Richtung aus EEF heraus
-        waypoints.append(copy.deepcopy(self.move_group.get_current_pose().pose)) # current pose
+        waypoints.append(copy.deepcopy(self.move_group.get_current_pose().pose))  # current pose
         wpose = Pose(pose.position, pose.orientation)
         waypoints.append(copy.deepcopy(wpose))
         (plan, fraction) = self.move_group.compute_cartesian_path(
@@ -247,8 +244,8 @@ class MirNav2Goal(object):
 
 
 if __name__ == '__main__':
-    p1 = myPoint((1, 2, 3))
-    p2 = myPoint((1, 2, 3))
+    p1 = MyPoint((1, 2, 3))
+    p2 = MyPoint((1, 2, 3))
 
     p3 = p1 + p2
 
