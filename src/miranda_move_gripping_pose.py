@@ -2,19 +2,11 @@
 # coding=latin-1
 
 import rospy
-import moveit_commander
-import actionlib
-from move_base_msgs.msg import MoveBaseAction, MoveBaseGoal
-from math import radians, degrees
 from actionlib_msgs.msg import *
 from geometry_msgs.msg import PoseWithCovarianceStamped, PoseStamped, Point, Quaternion, Twist, Pose
-from nav_msgs.msg import Odometry
-import moveit_msgs.msg
 import sys
 import time
-import numpy as np
-import math
-from my_functions import myPoint, MyPose, PandaGoals, PandaMove, MirNav2Goal
+from my_functions import MyPose, PandaGoals, PandaMove, MirNav2Goal
 
 
 class MirandaNav2Goal(MirNav2Goal):
@@ -84,7 +76,10 @@ if __name__ == '__main__':
             time.sleep(0.1)
         miranda.movePanda(0)
         # miranda.sendGoalPos(goal_pos)
-        miranda.panda.movePose(miranda.pandaRelative[0].calcRelGoal(miranda.mirPose))
+        posePanda_goal = miranda.pandaRelative[0].calcRelGoal(miranda.mirPose)
+        print("Panda Goal is: ")
+        print(posePanda_goal)
+        miranda.panda.movePose()
         rospy.loginfo("GoalPose is: ")
         rospy.loginfo(goal_pos)
         # rate.sleep()
