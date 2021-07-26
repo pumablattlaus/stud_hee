@@ -14,7 +14,7 @@ import sys
 import time
 import numpy as np
 import math
-from my_functions import myPoint, myPose, pandaGoals, PandaMove, MirNav2Goal
+from my_functions import myPoint, MyPose, PandaGoals, PandaMove, MirNav2Goal
 
 
 class MirandaNav2Goal(MirNav2Goal):
@@ -23,14 +23,14 @@ class MirandaNav2Goal(MirNav2Goal):
         self.panda = PandaMove("panda_arm", ns=panda_prefix, robot_description=panda_description)
         # Relative stable Poses to work from (use joint angles and relative Pose) 
         self.pandaRelative = []
-        p1 = myPose((0.656036424314, -0.0597577841713, -0.103558385398), (-0.909901224555, 0.41268467068,
+        p1 = MyPose((0.656036424314, -0.0597577841713, -0.103558385398), (-0.909901224555, 0.41268467068,
                                                                           -0.023065127793, 0.0352011934197))
         a1 = [-0.198922703533319, 1.3937412735955756, 0.11749296106956011, -1.312658217933717, -0.1588243463469876,
               2.762937863667806, 0.815807519980951]
-        self.pandaRelative.append(pandaGoals(p1, a1))
+        self.pandaRelative.append(PandaGoals(p1, a1))
 
-    def calculateMirGrippingPose(self, gripPose=myPose(), pose_num=0):
-        mirPose = myPose()
+    def calculateMirGrippingPose(self, gripPose=MyPose(), pose_num=0):
+        mirPose = MyPose()
         mirPose.position = gripPose.position - self.pandaRelative[pose_num].pose_relative.position
         mirPose.orientation.z = 1
         mirPose.orientation.w = 0
@@ -84,7 +84,6 @@ if __name__ == '__main__':
             time.sleep(0.1)
         miranda.movePanda(0)
         # miranda.sendGoalPos(goal_pos)
-        # TODO: use real mir pose (miranda.mirPose)
         miranda.panda.movePose(miranda.pandaRelative[0].calcRelGoal(miranda.mirPose))
         rospy.loginfo("GoalPose is: ")
         rospy.loginfo(goal_pos)

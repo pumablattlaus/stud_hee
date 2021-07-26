@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 # # coding=latin-1
-
+import copy
 import math
 import rospy
 import moveit_commander
@@ -62,27 +62,27 @@ class myOrient(Quaternion):
         return o_out
 
 
-class myPose(Pose):
+class MyPose(Pose):
     def __init__(self, pos=(0, 0, 0), quatern=(0, 0, 0, 1)):
         point = myPoint(pos)
         orient = myOrient(quatern)
-        super(myPose, self).__init__(point, orient)
+        super(MyPose, self).__init__(point, orient)
 
     def __add__(self, p2):
-        p_out = myPose()
+        p_out = MyPose()
         p_out.position = self.position + p2.position
         p_out.orientation = self.orientation + p2.orientation
         return p_out
 
     def __sub__(self, p2):
-        p_out = myPose()
+        p_out = MyPose()
         p_out.position = self.position - p2.position
         p_out.orientation = self.orientation - p2.orientation
         return p_out
 
 
-class pandaGoals(object):
-    def __init__(self, pose_relative=myPose(), axis_goal=[]):
+class PandaGoals(object):
+    def __init__(self, pose_relative=MyPose(), axis_goal=[]):
         if len(axis_goal) < 7:
             print("using standard for Axis_goal because len<7")
             axis_goal = [-0.09165325995045537, -0.1307664982896102, -0.08691672911214791, -1.2039535559629443,
@@ -91,7 +91,7 @@ class pandaGoals(object):
         self.axis_goal = axis_goal
         self.movement = None
 
-    def calcRelGoal(self, mir_pose=myPose(), grab_pose=None):
+    def calcRelGoal(self, mir_pose=MyPose(), grab_pose=None):
         # vec_move = myPose()
         # pose_current = mir_pose+self.pose_relative
         # vec_move = grab_pose-pose_current
@@ -135,13 +135,13 @@ class PandaMove(object):
 
         return plan
 
-    def movePose(self, pose=myPose):
-        pose=Pose(pose.position, pose.orientation)
+    def movePose(self, pose=MyPose(), vel=1):
+        pose = Pose(pose.position, pose.orientation)
         self.move_group.set_pose_target(pose)
         # call the planner to compute the plan and execute it.
         # plan = move_group.go(wait=True)
         plan = self.move_group.plan()  # plan can get altered
-        plan = self.velocity_scale(plan, 1)
+        plan = self.velocity_scale(plan, vel)
         self.move_group.execute(plan, wait=True)
         # Calling `stop()` ensures that there is no residual movement
         self.move_group.stop()
@@ -149,11 +149,23 @@ class PandaMove(object):
         # Note: there is no equivalent function for clear_joint_value_targets()
         self.move_group.clear_pose_targets()
 
+    def movePoseLin(self, pose=MyPose(), vel=1):
+        waypoints = []  # ggf in 90 deg zu Orientierung EEF und dann Rest nur in x-Richtung aus EEF heraus
+        waypoints.append(copy.deepcopy(self.move_group.get_current_pose().pose)) # current pose
+        wpose = Pose(pose.position, pose.orientation)
+        waypoints.append(copy.deepcopy(wpose))
+        (plan, fraction) = self.move_group.compute_cartesian_path(
+            waypoints,  # waypoints to follow
+            0.01,  # eef_step
+            0.0)  # jump_threshold
+        plan = self.velocity_scale(plan, vel)
+        self.move_group.execute(plan, wait=True)
+
 
 class MirNav2Goal(object):
 
     def __init__(self, mir_prefix=""):
-        self.mirPose = myPose()
+        self.mirPose = MyPose()
         self.status = None  # if robot has no status/goal := 10
         self.id = 0
         self.ready = True
@@ -178,7 +190,7 @@ class MirNav2Goal(object):
 
     def odom_callback(self, msg):
         # ToDO: test if adding subtracting is working if constructed this way
-        self.mirPose = myPose(msg.position, msg.orientation)
+        self.mirPose = MyPose(msg.position, msg.orientation)
         # self.y = msg.position.y
 
         # rospy.loginfo("------------------------------------------------")
@@ -208,7 +220,7 @@ class MirNav2Goal(object):
         z = (z % 360) / 360 * 2 - 1
         w = math.sqrt(1 - z ** 2)
 
-        pose = myPose()
+        pose = MyPose()
         pose.position.x = x
         pose.position.y = y
         pose.orientation.z = z
@@ -242,10 +254,10 @@ if __name__ == '__main__':
 
     print(p3)
 
-    pose1 = myPose((1, 2, 3))
-    pose2 = myPose((1, 2, 3))
+    pose1 = MyPose((1, 2, 3))
+    pose2 = MyPose((1, 2, 3))
 
-    pose3 = myPose()
+    pose3 = MyPose()
 
     pose3.position = pose1.position + pose2.position
 
