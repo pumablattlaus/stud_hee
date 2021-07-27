@@ -20,12 +20,20 @@ except: # For Python 2 compatibility
 from std_msgs.msg import String
 from moveit_commander.conversions import pose_to_list
 
+panda_description="/miranda/panda/robot_description"
+panda_ns="/miranda/panda"
+
 
 moveit_commander.roscpp_initialize(sys.argv)
 rospy.init_node('move_group_python_interface_tutorial', anonymous=True)
 
 # Provides information such as the robot’s kinematic model and the robot’s current joint states
-robot = moveit_commander.RobotCommander()
+try:
+  robot = moveit_commander.RobotCommander(robot_description=panda_description,ns=panda_ns)
+except RuntimeError:
+  panda_description="robot_description"
+  panda_ns=""
+  robot = moveit_commander.RobotCommander(robot_description=panda_description,ns=panda_ns)
 
 # We can get a list of all the groups in the robot:
 group_names = robot.get_group_names()
@@ -33,10 +41,10 @@ print("============ Available Planning Groups:", robot.get_group_names())
 
 # interface to a planning group (group of joints). used to plan and execute motions
 group_name = "panda_arm"
-move_group = moveit_commander.MoveGroupCommander(group_name)
+move_group = moveit_commander.MoveGroupCommander(group_name, robot_description=panda_description, ns=panda_ns)
 
 # remote interface for getting, setting, and updating the robot’s internal understanding of the surrounding world:
-scene = moveit_commander.PlanningSceneInterface()
+scene = moveit_commander.PlanningSceneInterface(ns=panda_ns)
 
 # Displays trajectory in RVIZ
 display_trajectory_publisher = rospy.Publisher('/move_group/display_planned_path',
