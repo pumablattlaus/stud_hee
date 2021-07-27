@@ -9,6 +9,7 @@ import moveit_msgs.msg
 from actionlib_msgs.msg import *
 import numpy as np
 import quaternion
+from panda_grasping import *
 
 
 class MyPoint(Point):
@@ -118,6 +119,9 @@ class PandaMove(object):
         display_trajectory_publisher = rospy.Publisher('/move_group/display_planned_path',
                                                        moveit_msgs.msg.DisplayTrajectory,
                                                        queue_size=20)
+        
+        # Add Gripper:
+        self.gripper = PandaGripper(ns)
 
     def velocity_scale(self, plan, scale):
         for i in range(len(plan.joint_trajectory.points)):
@@ -167,7 +171,7 @@ class MirNav2Goal(object):
         self.id = 0
         self.ready = True
 
-        rospy.init_node('my_moveGoal', anonymous=False)
+        # rospy.init_node('my_moveGoal', anonymous=False)
         self.pub = rospy.Publisher(mir_prefix + '/move_base_simple/goal', PoseStamped, queue_size=1)
         # sub_odom = rospy.Subscriber('/amcl_pose', PoseWithCovarianceStamped, self.odom_callback) # get the messages of the robot pose in frame
         sub_odom = rospy.Subscriber(mir_prefix + '/robot_pose', Pose, self.odom_callback)
@@ -186,13 +190,8 @@ class MirNav2Goal(object):
         ############ -- get the current pose of the robot -- #################
 
     def odom_callback(self, msg):
-        # ToDO: test if adding subtracting is working if constructed this way
+        # ToDo: test if adding subtracting is working if constructed this way
         self.mirPose = MyPose(msg.position, msg.orientation)
-        # self.y = msg.position.y
-
-        # rospy.loginfo("------------------------------------------------")
-        # rospy.loginfo("pose x = " + str(self.x))
-        # rospy.loginfo("pose y = " + str(self.y))
 
     def sendGoalPos(self, pose):
         self.ready = False

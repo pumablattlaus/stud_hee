@@ -50,6 +50,9 @@ if __name__ == '__main__':
         panda_prefix = ""
         panda_description = "robot_description"
         rospy.loginfo("No prefix is set. pass arggument <miranda> for use with miranda!")
+    
+    
+    rospy.init_node("MirandaMoveGrip")
 
     miranda = MirandaNav2Goal(mir_prefix, panda_prefix, panda_description)
 

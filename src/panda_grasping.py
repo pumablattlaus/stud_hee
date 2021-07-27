@@ -99,15 +99,7 @@ class PandaGripper(object):
 if __name__ == "__main__":
     rospy.init_node("PandaGripperTest")
     gripper = PandaGripper()
-    # gripper.graspObj(0.00,0.001,0.01, force=1)
     
-    # while not gripper.gotResult:
-    #     time.sleep(0.1)
-    # if not gripper.success:
-    #     print("No Success!")
-    #     print(gripper.status)
-    #     time.sleep(1)
-    #     gripper.graspObj(0.0,0.2,0.2, force=50)
     if not gripper.graspObj():
         print("No Object")
     
