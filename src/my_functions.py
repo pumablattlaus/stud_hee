@@ -86,24 +86,35 @@ class PandaGoals(object):
             print("using standard for Axis_goal because len<7")
             axis_goal = [-0.09165325995045537, -0.1307664982896102, -0.08691672911214791, -1.2039535559629443,
                          -0.058938511593474276, 1.7850536203251945, -1.5727488613542584]
-        self.pose_relative = pose_relative
+        # self.pose_relative = pose_relative
+        self.pose_relative = self.transfPoseBase(pose_relative)
+        
         self.axis_goal = axis_goal
         self.movement = None
 
-    def calcRelGoal(self, mir_pose=MyPose(), grab_pose=None):
-        # vec_move = myPose()
-        # pose_current = mir_pose+self.pose_relative
-        # vec_move = grab_pose-pose_current
+    def calcRelGoal(self, base_pose=MyPose(), grab_pose=None):
+        # rel_pose = myPose()
+        # pose_current = base_pose+self.pose_relative
+        # rel_pose = grab_pose-pose_current
         if grab_pose is None:
             grab_pose = self.pose_relative
-        vec_move = grab_pose - mir_pose
+        rel_pose = grab_pose - base_pose
 
-        return vec_move
+        return rel_pose
+    
+    def transfPoseBase(self, pose=MyPose()):
+        q = quaternion.quaternion(*pose.orientation.__reduce__()[2])
+        t = np.array(pose.position.__reduce__()[2])
+        rot = q.inverse()
+        # trans = q.conjugate()*t*q
+        trans = quaternion.rotate_vectors(rot, t)
+        return MyPose(trans,rot.components)
 
 
 class PandaMove(object):
-    def __init__(self, group_name="panda_arm", ns='', robot_description="robot_description"):
+    def __init__(self, group_name="panda_arm", ns='', robot_description="robot_description", listener = None):
         moveit_commander.roscpp_initialize([])
+        self.ns = ns
         self.robot = moveit_commander.RobotCommander(ns=ns, robot_description=robot_description)
         # interface to a planning group (group of joints). used to plan and execute motions
         try:
@@ -120,6 +131,11 @@ class PandaMove(object):
         display_trajectory_publisher = rospy.Publisher('/move_group/display_planned_path',
                                                        moveit_msgs.msg.DisplayTrajectory,
                                                        queue_size=20)
+        
+        if listener is None:
+            self.listener = tf.TransformListener()
+        else:
+            self.listener = listener
         
         # Add Gripper:
         self.gripper = PandaGripper(ns)
@@ -162,6 +178,17 @@ class PandaMove(object):
             0.0)  # jump_threshold
         plan = self.velocity_scale(plan, vel)
         self.move_group.execute(plan, wait=True)
+        
+    def movePoseTotal(self, pose=MyPose(), linear=False):
+        (pos, rot) = self.listener.lookupTransform(self.ns+"/panda_link0", "map", rospy.Time.now())
+        
+        poseRel = MyPose(tuple(pos), tuple(rot))
+        poseRel = pose-poseRel
+        
+        if linear:
+            self.movePoseLin(poseRel)
+        else:
+            self.movePose(poseRel)
 
 
 class MirNav2Goal(object):

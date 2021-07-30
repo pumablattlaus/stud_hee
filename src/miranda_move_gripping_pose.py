@@ -19,7 +19,14 @@ class MirandaNav2Goal(MirNav2Goal):
                                                                           -0.023065127793, 0.0352011934197))
         a1 = [-0.198922703533319, 1.3937412735955756, 0.11749296106956011, -1.312658217933717, -0.1588243463469876,
               2.762937863667806, 0.815807519980951]
+        
         self.pandaRelative.append(PandaGoals(p1, a1))
+        
+        # ToDo: Test loeschen
+        # pub_test = rospy.Publisher("/my_test", Pose, queue_size=1)
+        # pub_test.publish(self.pandaRelative[0].pose_relative)
+        
+        
         
         pandaBasePose = self.listener.lookupTransform('/miranda/mir/base_link', '/miranda/panda/panda_link0',rospy.Time(0))
         self.pandaBaseRel = MyPose(pandaBasePose[0], pandaBasePose[1])
@@ -28,7 +35,8 @@ class MirandaNav2Goal(MirNav2Goal):
         mirPose = MyPose()
         mirPose.position = gripPose.position - (self.pandaRelative[pose_num].pose_relative.position + self.pandaBaseRel.position)
         mirPose.position.z = 0
-        mirPose.orientation = gripPose.orientation - self.pandaRelative[pose_num].pose_relative.orientation # self.pandaBaseRel.orientation
+        # mirPose.orientation = gripPose.orientation - self.pandaRelative[pose_num].pose_relative.orientation # self.pandaBaseRel.orientation
+        mirPose.orientation = gripPose.orientation
         mirPose.orientation.x = 0
         mirPose.orientation.y = 0
         # mirPose.orientation.w = 0
@@ -41,8 +49,10 @@ class MirandaNav2Goal(MirNav2Goal):
         
     def movePandaAxis(self, target=None):
         if target is None:
-            target = [-0.198922703533319, 0.5, 0.11749296106956011, -1.312658217933717, -0.1588243463469876,
-              2.762937863667806, 0.815807519980951]
+            # target = [-0.198922703533319, 0.5, 0.11749296106956011, -1.312658217933717, -0.1588243463469876,
+            #   2.762937863667806, 0.815807519980951]
+            target = [0.0740422346346211, -0.20232101289978627, 0.08934749049583862, -0.7155832671282583, 
+                      -0.034721063966157525, 3.480999345766173, 0.9134598995556333]
         self.panda.move_group.set_joint_value_target(target)
         plan = self.panda.move_group.plan()
         # plan = panda_robot.velocity_scale(plan, 0.9)
@@ -87,6 +97,9 @@ if __name__ == '__main__':
 
         rospy.loginfo("Status is: " + str(miranda.status))
         # my_nav.getSendGoal()
+        
+        miranda.movePandaAxis() 
+
         goal_pos = miranda.getGoalCommandLine(False)
         mir_pose = miranda.calculateMirGrippingPose(goal_pos)
         rospy.loginfo("Mir gripping Pose is: ")
@@ -97,11 +110,17 @@ if __name__ == '__main__':
             time.sleep(0.1)
         miranda.movePanda(0)
         # miranda.sendGoalPos(goal_pos)
-        posePanda_goal = miranda.pandaRelative[0].calcRelGoal(miranda.getMirPose()+miranda.pandaBaseRel, goal_pos)
-        print("Panda Goal is: ")
-        print(posePanda_goal)
-        miranda.panda.movePose()
-        rospy.loginfo("GoalPose is: ")
-        rospy.loginfo(goal_pos)
+        
+        # posePanda_goal = miranda.pandaRelative[0].calcRelGoal(miranda.getMirPose()+miranda.pandaBaseRel, goal_pos)
+        # print("Panda Goal is: ")
+        # print(posePanda_goal)
+        # miranda.panda.movePose(posePanda_goal)
+        # rospy.loginfo("GoalPose is: ")
+        # rospy.loginfo(goal_pos)
+        
+        print("Panda: Moving remaining dist ")
+        time.sleep(0.5)
+        
+        miranda.panda.movePoseTotal(goal_pos)
         # rate.sleep()
         time.sleep(0.1)
