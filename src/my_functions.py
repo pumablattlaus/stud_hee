@@ -10,6 +10,7 @@ from actionlib_msgs.msg import *
 import numpy as np
 import quaternion
 from panda_grasping import *
+import tf
 
 
 class MyPoint(Point):
@@ -166,16 +167,21 @@ class PandaMove(object):
 class MirNav2Goal(object):
 
     def __init__(self, mir_prefix=""):
-        self.mirPose = MyPose()
+        use_poseSub = False
+        self.listener = tf.TransformListener()
         self.status = None  # if robot has no status/goal := 10
         self.id = 0
         self.ready = True
 
         # rospy.init_node('my_moveGoal', anonymous=False)
         self.pub = rospy.Publisher(mir_prefix + '/move_base_simple/goal', PoseStamped, queue_size=1)
-        # sub_odom = rospy.Subscriber('/amcl_pose', PoseWithCovarianceStamped, self.odom_callback) # get the messages of the robot pose in frame
-        sub_odom = rospy.Subscriber(mir_prefix + '/robot_pose', Pose, self.odom_callback)
+        
         sub_status = rospy.Subscriber(mir_prefix + '/move_base/status', GoalStatusArray, self.status_callback)
+        
+        # sub_odom = rospy.Subscriber('/amcl_pose', PoseWithCovarianceStamped, self.odom_callback) # get the messages of the robot pose in frame
+        if use_poseSub:
+            self.mirPose = MyPose()
+            sub_odom = rospy.Subscriber(mir_prefix + '/robot_pose', Pose, self.odom_callback)
 
     def status_callback(self, msg=GoalStatusArray()):
         if len(msg.status_list):
@@ -189,9 +195,27 @@ class MirNav2Goal(object):
 
         ############ -- get the current pose of the robot -- #################
 
-    def odom_callback(self, msg):
+    def odom_callback(self, msg=Pose()):
         # ToDo: test if adding subtracting is working if constructed this way
-        self.mirPose = MyPose(msg.position, msg.orientation)
+        # self.mirPose = MyPose(msg.position, msg.orientation)
+        pos = msg.position
+        self.mirPose.position.x = float(pos.x)
+        self.mirPose.position.y = float(pos.y)
+        self.mirPose.position.z = float(pos.z)
+        
+        ori = msg.orientation
+        self.mirPose.orientation.w = float(ori.w)
+        self.mirPose.orientation.x = float(ori.x)
+        self.mirPose.orientation.y = float(ori.y)
+        self.mirPose.orientation.z = float(ori.z)
+        
+    def getMirPose(self):
+        (pos, rot) = self.listener.lookupTransform('/map', '/miranda/mir/base_link', rospy.Time(0))
+        mirPose = MyPose()
+        mirPose.position = MyPoint(tuple(pos))
+        mirPose.orientation = MyOrient(tuple(rot))
+        return mirPose
+        
 
     def sendGoalPos(self, pose):
         self.ready = False
@@ -205,15 +229,18 @@ class MirNav2Goal(object):
         pose = self.getGoalCommandLine()
         self.sendGoalPos(pose)
 
-    def getGoalCommandLine(self):
+    def getGoalCommandLine(self, deg=True):
         print("Position: ")
         x = float(input("X= "))
         y = float(input("Y= "))
-
-        print("Orientation: 0-360")
-        z = float(input("Z= "))
-
-        z = (z % 360) / 360 * 2 - 1
+        
+        if deg:
+            print("Orientation: 0-360")
+            z = float(input("Z= "))
+            z = (z % 360) / 360 * 2 - 1
+        else:
+            print("Orientation: 0-1")
+            z = float(input("Z= "))
         w = math.sqrt(1 - z ** 2)
 
         pose = MyPose()

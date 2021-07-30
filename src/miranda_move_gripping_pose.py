@@ -20,17 +20,29 @@ class MirandaNav2Goal(MirNav2Goal):
         a1 = [-0.198922703533319, 1.3937412735955756, 0.11749296106956011, -1.312658217933717, -0.1588243463469876,
               2.762937863667806, 0.815807519980951]
         self.pandaRelative.append(PandaGoals(p1, a1))
+        
+        pandaBasePose = self.listener.lookupTransform('/miranda/mir/base_link', '/miranda/panda/panda_link0',rospy.Time(0))
+        self.pandaBaseRel = MyPose(pandaBasePose[0], pandaBasePose[1])
 
     def calculateMirGrippingPose(self, gripPose=MyPose(), pose_num=0):
         mirPose = MyPose()
-        mirPose.position = gripPose.position - self.pandaRelative[pose_num].pose_relative.position
-        mirPose.orientation.z = 1
-        mirPose.orientation.w = 0
+        mirPose.position = gripPose.position - (self.pandaRelative[pose_num].pose_relative.position + self.pandaBaseRel.position)
+        mirPose.position.z = 0
+        mirPose.orientation = gripPose.orientation - self.pandaRelative[pose_num].pose_relative.orientation # self.pandaBaseRel.orientation
+        mirPose.orientation.x = 0
+        mirPose.orientation.y = 0
+        # mirPose.orientation.w = 0
 
         return mirPose
 
     def movePanda(self, pose_num=0):
         target = self.pandaRelative[pose_num].axis_goal
+        self.movePandaAxis(target)
+        
+    def movePandaAxis(self, target=None):
+        if target is None:
+            target = [-0.198922703533319, 0.5, 0.11749296106956011, -1.312658217933717, -0.1588243463469876,
+              2.762937863667806, 0.815807519980951]
         self.panda.move_group.set_joint_value_target(target)
         plan = self.panda.move_group.plan()
         # plan = panda_robot.velocity_scale(plan, 0.9)
@@ -38,28 +50,34 @@ class MirandaNav2Goal(MirNav2Goal):
 
 
 if __name__ == '__main__':
-
-    # if len(sys.argv) > 1:
-    # mir_prefix = sys.argv[1]    # /miranda/mir
-    if len(sys.argv) > 1 and sys.argv[1] == "miranda":
-        mir_prefix = "/miranda/mir"
-        panda_prefix = "/miranda/panda"
-        panda_description = "/miranda/panda/robot_description"
-    else:
-        mir_prefix = ""
-        panda_prefix = ""
-        panda_description = "robot_description"
-        rospy.loginfo("No prefix is set. pass arggument <miranda> for use with miranda!")
-    
     
     rospy.init_node("MirandaMoveGrip")
 
-    miranda = MirandaNav2Goal(mir_prefix, panda_prefix, panda_description)
+    # if len(sys.argv) > 1:
+    # mir_prefix = sys.argv[1]    # /miranda/mir
+    if len(sys.argv) > 1:
+        ns = sys.argv[1].__str__()
+        mir_prefix = ns+"/mir"
+        panda_prefix = ns+"/panda"
+        panda_description = ns+"/panda/robot_description"
+        miranda = MirandaNav2Goal(mir_prefix, panda_prefix, panda_description)
+    else:
+        mir_prefix = "/miranda/mir"
+        panda_prefix = "/miranda/panda"
+        panda_description = "/miranda/panda/robot_description"
+        try:
+            miranda = MirandaNav2Goal(mir_prefix, panda_prefix, panda_description)
+        except RuntimeError:
+            mir_prefix = ""
+            panda_prefix = ""
+            panda_description = "robot_description"
+            rospy.loginfo("No prefix is set.")
+            miranda = MirandaNav2Goal(mir_prefix, panda_prefix, panda_description)
 
     rate = rospy.Rate(0.5)
+    
+    miranda.movePandaAxis()
 
-    pos = (0, 0, 0)
-    point = Point(*pos)
 
     while not rospy.is_shutdown():
         if not miranda.is_ready():
@@ -69,9 +87,9 @@ if __name__ == '__main__':
 
         rospy.loginfo("Status is: " + str(miranda.status))
         # my_nav.getSendGoal()
-        goal_pos = miranda.getGoalCommandLine()
+        goal_pos = miranda.getGoalCommandLine(False)
         mir_pose = miranda.calculateMirGrippingPose(goal_pos)
-        rospy.loginfo("Mir_pose is: ")
+        rospy.loginfo("Mir gripping Pose is: ")
         rospy.loginfo(mir_pose)
         miranda.sendGoalPos(mir_pose)
         time.sleep(0.5)
@@ -79,7 +97,7 @@ if __name__ == '__main__':
             time.sleep(0.1)
         miranda.movePanda(0)
         # miranda.sendGoalPos(goal_pos)
-        posePanda_goal = miranda.pandaRelative[0].calcRelGoal(miranda.mirPose)
+        posePanda_goal = miranda.pandaRelative[0].calcRelGoal(miranda.getMirPose()+miranda.pandaBaseRel, goal_pos)
         print("Panda Goal is: ")
         print(posePanda_goal)
         miranda.panda.movePose()
