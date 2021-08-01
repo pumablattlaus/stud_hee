@@ -11,6 +11,7 @@ import numpy as np
 import quaternion
 from panda_grasping import *
 import tf
+from tf import transformations
 
 
 class MyPoint(Point):
@@ -18,8 +19,13 @@ class MyPoint(Point):
         if type(pos) == Point:
             # super(myPoint, self).__init__(pos)
             self = pos
+            self.asArray = np.array(pos.__reduce__()[2])
         else:
             super(MyPoint, self).__init__(*pos)
+            self.asArray = np.array(pos)
+
+        # 1 hinten anfuegen
+        self.asArray = np.append(self.asArray, 1)
 
     def __add__(self, p2):
         p_out = MyPoint()
@@ -41,24 +47,22 @@ class MyPoint(Point):
 class MyOrient(Quaternion):
     def __init__(self, quatern=(0, 0, 0, 1)):
         if type(quatern) == Quaternion:
-            self = quatern
+            self.asArray = np.array(quatern.__reduce__()[2])
         else:
             super(MyOrient, self).__init__(*quatern)
+            self.asArray = np.array(quatern)
 
     def __add__(self, o2):
-        q1 = quaternion.quaternion(*self.__reduce__()[2])
-        q2 = quaternion.quaternion(*o2.__reduce__()[2])
-        q3 = q1*q2
-        o_out = MyOrient(q3.__reduce__()[1])
-        return o_out
+        return MyOrient(transformations.quaternion_multiply(self.asArray, o2.asArray))
 
     def __sub__(self, o2):
-        q1 = quaternion.quaternion(*self.__reduce__()[2])
-        q2 = quaternion.quaternion(*o2.__reduce__()[2])
-        # q3 = quaternion.quaternion(np.quaternion.conjugate(q1) * q2)
-        q3 = q1.conjugate()*q2
-        o_out = MyOrient(q3.__reduce__()[1])
-        return o_out
+        # q1 = quaternion.quaternion(*self.__reduce__()[2])
+        # q2 = quaternion.quaternion(*o2.__reduce__()[2])
+        # # q3 = quaternion.quaternion(np.quaternion.conjugate(q1) * q2)
+        # q3 = q1.conjugate()*q2
+        # o_out = MyOrient(q3.__reduce__()[1])
+        q_inv = transformations.quaternion_conjugate(o2.asArray)
+        return MyOrient(transformations.quaternion_multiply(self.asArray, q_inv))
 
 
 class MyPose(Pose):
@@ -66,6 +70,8 @@ class MyPose(Pose):
         point = MyPoint(pos)
         orient = MyOrient(quatern)
         super(MyPose, self).__init__(point, orient)
+        self.position = point
+        self.orientation = orient
 
     def __add__(self, p2):
         p_out = MyPose()
@@ -103,12 +109,14 @@ class PandaGoals(object):
         return rel_pose
     
     def transfPoseBase(self, pose=MyPose()):
-        q = quaternion.quaternion(*pose.orientation.__reduce__()[2])
-        t = np.array(pose.position.__reduce__()[2])
-        rot = q.inverse()
-        # trans = q.conjugate()*t*q
-        trans = quaternion.rotate_vectors(rot, t)
-        return MyPose(trans,rot.components)
+
+        # q = quaternion.quaternion(*pose.orientation.__reduce__()[2])
+        # t = np.array(pose.position.__reduce__()[2])
+        # rot = q.inverse()
+        # # trans = q.conjugate()*t*q
+        # trans = quaternion.rotate_vectors(rot, t)
+        # return MyPose(trans,rot.components)
+        pose.orientation.asArray
 
 
 class PandaMove(object):

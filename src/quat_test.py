@@ -19,4 +19,10 @@ if __name__ == "__main__":
     q_delta = q2 * q1_inv
     print(q_delta)
 
-    # transf.quaternion_multiply()
+    q1_ = [0, 0, 0.7071068, 0.7071068]
+    q2_ = [0, 0, 0.9238795, 0.3826834]
+    q1_inv_ = transf.quaternion_inverse(q1_)
+    q1_conj_ = transf.quaternion_conjugate(q1_)
+    q_delta_ = transf.quaternion_multiply(q2_, q1_conj_)
+    print (q_delta_)
+
