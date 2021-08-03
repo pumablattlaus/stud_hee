@@ -15,7 +15,7 @@ from tf import transformations
 
 
 class MyPoint(Point):
-    def __init__(self, pos=(0, 0, 0)):
+    def __init__(self, pos=(0.0, 0.0, 0.0)):
         if type(pos) == Point:
             # super(myPoint, self).__init__(pos)
             self = pos
@@ -45,7 +45,7 @@ class MyPoint(Point):
 
 
 class MyOrient(Quaternion):
-    def __init__(self, quatern=(0, 0, 0, 1)):
+    def __init__(self, quatern=(0.0, 0.0, 0.0, 1.0)):
         if type(quatern) == Quaternion:
             self.asArray = np.array(quatern.__reduce__()[2])
         else:
@@ -66,7 +66,7 @@ class MyOrient(Quaternion):
 
 
 class MyPose(Pose):
-    def __init__(self, pos=(0, 0, 0), quatern=(0, 0, 0, 1)):
+    def __init__(self, pos=(0.0, 0.0, 0.0), quatern=(0.0, 0.0, 0.0, 1.0)):
         point = MyPoint(pos)
         orient = MyOrient(quatern)
         super(MyPose, self).__init__(point, orient)
