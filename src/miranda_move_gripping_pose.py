@@ -15,16 +15,27 @@ class MirandaNav2Goal(MirNav2Goal):
         self.panda = PandaMove("panda_arm", ns=panda_prefix, robot_description=panda_description)
         # Relative stable Poses to work from (use joint angles and relative Pose) 
         self.pandaRelative = []
+        
+        # von oben
         p1 = MyPose((0.656036424314, -0.0597577841713, -0.103558385398), (-0.909901224555, 0.41268467068,
                                                                           -0.023065127793, 0.0352011934197))
         a1 = [-0.198922703533319, 1.3937412735955756, 0.11749296106956011, -1.312658217933717, -0.1588243463469876,
-              2.762937863667806, 0.815807519980951]
-        
+              2.762937863667806, 0.815807519980951]       
         self.pandaRelative.append(PandaGoals(p1, a1))
         
-        # ToDo: Test loeschen
-        # pub_test = rospy.Publisher("/my_test", Pose, queue_size=1)
-        # pub_test.publish(self.pandaRelative[0].pose_relative)
+        # von links
+        p2 = MyPose((0.447684206665, 0.143218696903, -0.168640488851), (0.651378340986, 0.308604768232,
+                                                                        -0.292953425794, 0.62820987276))
+        a2 = [1.2237364689655472, 1.750162085129698, -0.6800040184991402, -1.4698347165208097, -0.14583960898717244,
+              1.857775869356261, 0.05098501096834743]
+        self.pandaRelative.append(PandaGoals(p2, a2))
+        
+        # von vorne
+        p3 = MyPose((0.44152835008, -0.0731349874596, -0.274781670372), (0.294601267058, 0.655450407444, 
+                                                                          0.237834588757, 0.653474992039))
+        a3 = [-0.3430143268756699, 1.7191940036238282, 0.09120028918354135, -1.5264221894163197, 2.862566652389678,
+              1.5280684216684766, 0.65590209259636892]
+        self.pandaRelative.append(PandaGoals(p3, a3))
         
         
         
@@ -36,7 +47,7 @@ class MirandaNav2Goal(MirNav2Goal):
         mirPose.position = gripPose.position - (self.pandaRelative[pose_num].pose_relative.position + self.pandaBaseRel.position)
         mirPose.position.z = 0
         # mirPose.orientation = gripPose.orientation - self.pandaRelative[pose_num].pose_relative.orientation # self.pandaBaseRel.orientation
-        mirPose.orientation = gripPose.orientation
+        mirPose.orientation = gripPose.orientation - self.pandaRelative[pose_num].pose_relative.orientation - self.pandaBaseRel.orientation
         mirPose.orientation.x = 0
         mirPose.orientation.y = 0
         # mirPose.orientation.w = 0
@@ -88,7 +99,7 @@ if __name__ == '__main__':
     
     miranda.movePandaAxis()
 
-
+    pose_num = 2
     while not rospy.is_shutdown():
         if not miranda.is_ready():
             continue
@@ -101,14 +112,14 @@ if __name__ == '__main__':
         miranda.movePandaAxis() 
 
         goal_pos = miranda.getGoalCommandLine(False)
-        mir_pose = miranda.calculateMirGrippingPose(goal_pos)
+        mir_pose = miranda.calculateMirGrippingPose(goal_pos. pose_num)
         rospy.loginfo("Mir gripping Pose is: ")
         rospy.loginfo(mir_pose)
         miranda.sendGoalPos(mir_pose)
         time.sleep(0.5)
         while not miranda.is_ready():
             time.sleep(0.1)
-        miranda.movePanda(0)
+        miranda.movePanda(pose_num)
         # miranda.sendGoalPos(goal_pos)
         
         # posePanda_goal = miranda.pandaRelative[0].calcRelGoal(miranda.getMirPose()+miranda.pandaBaseRel, goal_pos)

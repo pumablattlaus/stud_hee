@@ -13,7 +13,6 @@ from panda_grasping import *
 import tf
 from tf import transformations
 
-
 class MyPoint(Point):
     def __init__(self, pos=(0.0, 0.0, 0.0)):
         if type(pos) == Point:
@@ -25,7 +24,7 @@ class MyPoint(Point):
             self.asArray = np.array(pos)
 
         # 1 hinten anfuegen
-        self.asArray = np.append(self.asArray, 1)
+        self.asArray = np.append(self.asArray, 0)
 
     def __add__(self, p2):
         p_out = MyPoint()
@@ -84,6 +83,15 @@ class MyPose(Pose):
         p_out.position = self.position - p2.position
         p_out.orientation = self.orientation - p2.orientation
         return p_out
+    
+    def rotateVector(self, vec=None, rot=None):
+        if vec == None:
+            vec = self.position.asArray
+        if rot == None:
+            rot = self.orientation.asArray
+        rot_conj = transformations.quaternion_conjugate(rot)
+        trans = transformations.quaternion_multiply(transformations.quaternion_multiply(rot_conj, vec), rot) [:3]
+        return MyPoint(trans)
 
 
 class PandaGoals(object):
@@ -109,14 +117,13 @@ class PandaGoals(object):
         return rel_pose
     
     def transfPoseBase(self, pose=MyPose()):
-
-        # q = quaternion.quaternion(*pose.orientation.__reduce__()[2])
-        # t = np.array(pose.position.__reduce__()[2])
-        # rot = q.inverse()
-        # # trans = q.conjugate()*t*q
-        # trans = quaternion.rotate_vectors(rot, t)
-        # return MyPose(trans,rot.components)
-        pose.orientation.asArray
+        q = pose.orientation.asArray
+        q_conj = transformations.quaternion_conjugate(q)
+        t = pose.position.asArray
+        trans = transformations.quaternion_multiply(transformations.quaternion_multiply(q_conj, t), q) [:3]
+        # trans = q_conj*t*q
+        
+        return MyPose(trans, q_conj)
 
 
 class PandaMove(object):
@@ -320,3 +327,12 @@ if __name__ == '__main__':
     pose3.position = pose1.position + pose2.position
 
     print(pose3)
+    
+    
+    p1 = MyPose((0.656036424314, -0.0597577841713, -0.103558385398), (-0.909901224555, 0.41268467068,
+                                                                        -0.023065127793, 0.0352011934197))
+    a1 = [-0.198922703533319, 1.3937412735955756, 0.11749296106956011, -1.312658217933717, -0.1588243463469876,
+            2.762937863667806, 0.815807519980951]
+    
+    panda_goal = PandaGoals(p1, a1)
+    print(panda_goal)
