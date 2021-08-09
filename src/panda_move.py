@@ -39,7 +39,9 @@ def velocity_scale(plan, scale):
 moveit_commander.roscpp_initialize(sys.argv)
 rospy.init_node('move_group_python_interface_tutorial', anonymous=True)
 
-panda_description="/miranda/panda/robot_description"
+ns="/miranda" #/miranda/panda
+# ns=""
+panda_description=ns+"/robot_description"
 
 # Provides information such as the robot’s kinematic model and the robot’s current joint states
 robot = moveit_commander.RobotCommander(robot_description=panda_description)
@@ -50,7 +52,6 @@ print("============ Available Planning Groups:", robot.get_group_names())
 
 # interface to a planning group (group of joints). used to plan and execute motions
 group_name = "panda_arm"
-ns="/miranda/panda"
 move_group = moveit_commander.MoveGroupCommander(group_name, ns=ns, robot_description=panda_description)
 
 # remote interface for getting, setting, and updating the robot’s internal understanding of the surrounding world:
