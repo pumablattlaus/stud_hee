@@ -32,7 +32,7 @@ robot_description = tf_prefix+"/robot_description"
 
 rospy.init_node('add_collision_mir', anonymous=True)
 
-safety_dists = np.array([0.0, 0.0, 0.1])
+safety_dists = np.array([0.0, 0.0, 0.0])
 mir_dim = np.array([0.88, 0.6, 0.45])
 box_dim = mir_dim+safety_dists
 
@@ -53,3 +53,18 @@ p.pose.position.y = -mir_dim[1]/2+0.2
 scene = moveit_commander.PlanningSceneInterface(ns=tf_prefix)
 rospy.sleep(2)
 scene.attach_box("panda_link0", 'mir', p, box_dim, touch_links=['panda_link0', 'panda_link1'])
+
+
+###################
+# Panda-Control:
+###################
+control_dim = np.array([0.4, 0.6, 0.1])
+
+p2 = geom_msg.PoseStamped()
+p2.header.frame_id = "panda_link0"
+p2.pose.orientation.w = 1
+p2.pose.position.z = +control_dim[2]/2
+p2.pose.position.x = -mir_dim[0]/2 + 0.25 - control_dim[0]/2
+p2.pose.position.y = -mir_dim[1]/2+0.2
+
+scene.attach_box("panda_link0", 'control_box', p2, control_dim)
