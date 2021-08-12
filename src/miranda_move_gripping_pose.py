@@ -8,7 +8,7 @@ import sys
 import time
 import math
 import numpy as np
-from my_functions import MyPose, PandaGoals, PandaMove, MirNav2Goal
+from my_functions import MyPose, MyPoint, MyOrient, PandaGoals, PandaMove, MirNav2Goal
 
 
 class MirandaNav2Goal(MirNav2Goal):
@@ -33,10 +33,15 @@ class MirandaNav2Goal(MirNav2Goal):
         self.pandaRelative.append(PandaGoals(p2, a2))
         
         # von vorne
-        p3 = MyPose((0.44152835008, -0.0731349874596, -0.274781670372), (0.294601267058, 0.655450407444, 
-                                                                          0.237834588757, 0.653474992039))
-        a3 = [-0.3430143268756699, 1.7191940036238282, 0.09120028918354135, -1.5264221894163197, 2.862566652389678,
-              1.5280684216684766, 0.65590209259636892]
+        p3 = MyPose((0.51120407709, 0.38271167266, -0.0896339517655), (0.284668312985, 0.632243382911, 
+                                                                          0.271560550401, 0.667448218077))
+        a3 = [1.3034922551576071, 1.575979168256124, -0.7041951051637146, -1.3652462901567157, -1.7017831660051927, 
+              2.2569356721625358, 0.7447485772350596]
+        self.pandaRelative.append(PandaGoals(p3, a3))
+        
+        # von vorne, flach/unten
+        p4 = MyPose((0.254601632, 0.387543637578, -0.238438655556), (0.328250580377, 0.650865539517, 0.236145165068, 0.642542657701))
+        a4 = [1.2570957422876035, 1.6296624805718138, -0.05383580090079391, -1.436617380749945, -1.758743998289108, 1.7004530393013495, 0.755999629455308]
         self.pandaRelative.append(PandaGoals(p3, a3))
         
         
@@ -116,7 +121,7 @@ if __name__ == '__main__':
     
     miranda.movePandaAxis()
 
-    pose_num = 2
+    pose_num = 0
     while not rospy.is_shutdown():
         if not miranda.is_ready():
             continue
@@ -151,6 +156,10 @@ if __name__ == '__main__':
         print("Panda: Moving remaining dist ")
         time.sleep(0.5)
         
-        miranda.panda.movePoseTotal(goal_pos)
+        miranda.panda.movePoseTotal(goal_pos, linear=True)
         # rate.sleep()
         time.sleep(0.1)
+        print("Start again? y/n:  ")
+        again = raw_input()
+        if not again=="y":
+            rospy.signal_shutdown("Aborted by user")
