@@ -6,6 +6,8 @@ from actionlib_msgs.msg import *
 from geometry_msgs.msg import PoseWithCovarianceStamped, PoseStamped, Point, Quaternion, Twist, Pose
 import sys
 import time
+import math
+import numpy as np
 from my_functions import MyPose, PandaGoals, PandaMove, MirNav2Goal
 
 
@@ -38,8 +40,10 @@ class MirandaNav2Goal(MirNav2Goal):
         self.pandaRelative.append(PandaGoals(p3, a3))
         
         
-        
-        pandaBasePose = self.listener.lookupTransform('/miranda/mir/base_link', '/miranda/panda/panda_link0',rospy.Time(0))
+        try:
+            pandaBasePose = self.listener.lookupTransform('/miranda/mir/base_link', '/miranda/panda/panda_link0',rospy.Time(0))
+        except:
+            pandaBasePose = self.listener.lookupTransform('/world', '/panda_link0',rospy.Time(0))
         self.pandaBaseRel = MyPose(pandaBasePose[0], pandaBasePose[1])
 
     def calculateMirGrippingPose(self, gripPose=MyPose(), pose_num=0):
@@ -56,18 +60,31 @@ class MirandaNav2Goal(MirNav2Goal):
 
     def movePanda(self, pose_num=0):
         target = self.pandaRelative[pose_num].axis_goal
-        self.movePandaAxis(target)
+        return self.movePandaAxis(target)
         
     def movePandaAxis(self, target=None):
         if target is None:
             # target = [-0.198922703533319, 0.5, 0.11749296106956011, -1.312658217933717, -0.1588243463469876,
             #   2.762937863667806, 0.815807519980951]
-            target = [0.0740422346346211, -0.20232101289978627, 0.08934749049583862, -0.7155832671282583, 
-                      -0.034721063966157525, 3.480999345766173, 0.9134598995556333]
+            target = [-0.23087953991586707, -0.26350456948865925, 0.060693435398110174, -0.6763397448455262, 
+                      0.1547569044896521, 2.8163922914174484, 1.33943788516301]
         self.panda.move_group.set_joint_value_target(target)
         plan = self.panda.move_group.plan()
-        # plan = panda_robot.velocity_scale(plan, 0.9)
-        self.panda.move_group.execute(plan, wait=True)
+        if len(plan.joint_trajectory.points):
+            # plan = panda_robot.velocity_scale(plan, 0.9)
+            return self.panda.move_group.execute(plan, wait=True)
+        return False
+    
+    def movePandaReplan(self, pose_num=0):
+        res = miranda.movePanda(pose_num)
+        if not res:
+            print("Panda: Moving to position not possible")
+            old_num = pose_num
+            while pose_num == old_num:
+                pose_num=np.random.randint(0, len(miranda.pandaRelative))
+                print("New Pose_Num = " + str(pose_num))
+                # Add Stop condition:
+                self.movePandaReplan(pose_num)
 
 
 if __name__ == '__main__':
@@ -112,14 +129,16 @@ if __name__ == '__main__':
         miranda.movePandaAxis() 
 
         goal_pos = miranda.getGoalCommandLine(False)
-        mir_pose = miranda.calculateMirGrippingPose(goal_pos. pose_num)
+        mir_pose = miranda.calculateMirGrippingPose(goal_pos, pose_num)
         rospy.loginfo("Mir gripping Pose is: ")
         rospy.loginfo(mir_pose)
         miranda.sendGoalPos(mir_pose)
         time.sleep(0.5)
         while not miranda.is_ready():
             time.sleep(0.1)
-        miranda.movePanda(pose_num)
+        # res = miranda.movePanda(pose_num)
+        miranda.movePandaReplan(pose_num)
+                
         # miranda.sendGoalPos(goal_pos)
         
         # posePanda_goal = miranda.pandaRelative[0].calcRelGoal(miranda.getMirPose()+miranda.pandaBaseRel, goal_pos)
