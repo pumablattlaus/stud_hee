@@ -41,11 +41,19 @@ rospy.init_node('move_group_python_interface_tutorial', anonymous=True)
 
 # ns="/miranda"
 ns="/miranda/panda"
-# ns=""
-panda_description=ns+"/robot_description"
+# Try with no namespace if error os thrown:
+try:
+  panda_description=ns+"/robot_description"
 
-# Provides information such as the robot’s kinematic model and the robot’s current joint states
-robot = moveit_commander.RobotCommander(robot_description=panda_description)
+  # Provides information such as the robotâs kinematic model and the robotâs current joint states
+  robot = moveit_commander.RobotCommander(robot_description=panda_description)
+
+except RuntimeError:
+  ns=""
+  panda_description=ns+"/robot_description"
+
+  # Provides information such as the robotâs kinematic model and the robotâs current joint states
+  robot = moveit_commander.RobotCommander(robot_description=panda_description)
 
 # We can get a list of all the groups in the robot:
 group_names = robot.get_group_names()
@@ -115,12 +123,14 @@ move_group.set_pose_target(pose_goal)
 # move_group.set_max_velocity_scaling_factor = 0.0002
 # move_group.set_max_acceleration_scaling_factor = 0.02
 
-print("moving:")
+
 # call the planner to compute the plan and execute it.
 # plan = move_group.go(wait=True)
-plan = move_group.plan()
-plan = velocity_scale(plan, 0.2)
 # move_group.retime_trajectory(move_group.get_current_state(), plan , 1)  # was ist ref_state_in in?
+
+plan = move_group.plan()
+plan = velocity_scale(plan, 1)  # change velocity
+print("moving:")
 move_group.execute(plan, wait=True)
 # Calling `stop()` ensures that there is no residual movement
 move_group.stop()
@@ -143,7 +153,12 @@ waypoints.append(copy.deepcopy(wpose))
                                    0.01,        # eef_step
                                    0.0)         # jump_threshold
 
-plan = velocity_scale(plan, 0.2)
-move_group.execute(plan, wait=True)
+if fraction != 1:
+  print("Cartesian path not valid. Fraction: " + str(fraction))
+else:
+  plan = velocity_scale(plan, 0.2)
+  res = move_group.execute(plan, wait=True)
+  print("Result = ")
+  print(res)
 
 # moveit_commander.Grasp()
