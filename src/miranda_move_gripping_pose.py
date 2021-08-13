@@ -4,6 +4,7 @@
 import rospy
 from actionlib_msgs.msg import *
 from geometry_msgs.msg import PoseWithCovarianceStamped, PoseStamped, Point, Quaternion, Twist, Pose
+import std_msgs.msg as std_msg
 import sys
 import time
 import math
@@ -14,6 +15,7 @@ from my_functions import MyPose, MyPoint, MyOrient, PandaGoals, PandaMove, MirNa
 class MirandaNav2Goal(MirNav2Goal):
     def __init__(self, mir_prefix="", panda_prefix="", panda_description="robot_description"):
         super(MirandaNav2Goal, self).__init__(mir_prefix=mir_prefix)
+        self.syncTime = rospy.Publisher("/syncTime", std_msg.Bool, queue_size=1)
         self.panda = PandaMove("panda_arm", ns=panda_prefix, robot_description=panda_description)
         # Relative stable Poses to work from (use joint angles and relative Pose) 
         self.pandaRelative = []
@@ -63,6 +65,17 @@ class MirandaNav2Goal(MirNav2Goal):
 
         return mirPose
 
+    def check_execute_plan(self, plan):
+        if len(plan.joint_trajectory.points):
+            # plan = panda_robot.velocity_scale(plan, 0.9)
+            res = self.panda.move_group.execute(plan, wait=True)
+            if not res:
+                self.syncTime.publish(std_msg.Bool(True))
+                res = self.panda.move_group.execute(plan, wait=True)
+            return res
+
+        return False
+
     def movePanda(self, pose_num=0):
         target = self.pandaRelative[pose_num].axis_goal
         return self.movePandaAxis(target)
@@ -75,10 +88,7 @@ class MirandaNav2Goal(MirNav2Goal):
                       0.1547569044896521, 2.8163922914174484, 1.33943788516301]
         self.panda.move_group.set_joint_value_target(target)
         plan = self.panda.move_group.plan()
-        if len(plan.joint_trajectory.points):
-            # plan = panda_robot.velocity_scale(plan, 0.9)
-            return self.panda.move_group.execute(plan, wait=True)
-        return False
+        self.check_execute_plan(plan)
     
     def movePandaReplan(self, pose_num=0):
         res = miranda.movePanda(pose_num)
