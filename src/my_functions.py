@@ -8,7 +8,7 @@ from geometry_msgs.msg import PoseStamped, Point, Quaternion, Twist, Pose
 import moveit_msgs.msg
 from actionlib_msgs.msg import *
 import numpy as np
-import quaternion
+# import quaternion
 from panda_grasping import *
 import tf
 from tf import transformations
@@ -17,11 +17,11 @@ class MyPoint(Point):
     def __init__(self, pos=(0.0, 0.0, 0.0)):
         if type(pos) == Point:
             # super(myPoint, self).__init__(pos)
-            self = pos
+            # self = pos
             self.asArray = np.array(pos.__reduce__()[2])
         else:
-            super(MyPoint, self).__init__(*pos)
             self.asArray = np.array(pos)
+        super(MyPoint, self).__init__(*(self.asArray))
 
         # 1 hinten anfuegen
         self.asArray = np.append(self.asArray, 0)
@@ -48,8 +48,8 @@ class MyOrient(Quaternion):
         if type(quatern) == Quaternion:
             self.asArray = np.array(quatern.__reduce__()[2])
         else:
-            super(MyOrient, self).__init__(*quatern)
             self.asArray = np.array(quatern)
+        super(MyOrient, self).__init__(*(self.asArray))
 
     def __add__(self, o2):
         return MyOrient(transformations.quaternion_multiply(self.asArray, o2.asArray))
@@ -204,6 +204,23 @@ class PandaMove(object):
             self.movePoseLin(poseRel)
         else:
             self.movePose(poseRel)
+            
+    def moveLin(self, pose=MyPose(), vel=1):
+        waypoints = []
+        wpose = MyPose(self.move_group.get_current_pose().pose.position, self.move_group.get_current_pose().pose.orientation)
+        waypoints.append(copy.deepcopy(wpose))  # current pose
+        wpose += pose
+        waypoints.append(copy.deepcopy(wpose))
+        (plan, fraction) = self.move_group.compute_cartesian_path(
+            waypoints,  # waypoints to follow
+            0.01,  # eef_step
+            0.0)  # jump_threshold
+        plan = self.velocity_scale(plan, vel)
+        if len(plan.joint_trajectory.points):
+            return self.move_group.execute(plan, wait=True)
+        rospy.loginfo("No Plan found for lin movement")
+        return False
+        
 
 
 class MirNav2Goal(object):

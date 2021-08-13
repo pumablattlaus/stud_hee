@@ -66,5 +66,6 @@ print(robot.get_current_state())
 print("")
 
 # move_group.get_jacobian_matrix()
+print("============ ROBOT POSE")
 p = move_group.get_current_pose()
 print(p)
