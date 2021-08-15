@@ -153,15 +153,6 @@ if __name__ == '__main__':
             time.sleep(0.1)
         # res = miranda.movePanda(pose_num)
         miranda.movePandaReplan(pose_num)
-                
-        # miranda.sendGoalPos(goal_pos)
-        
-        # posePanda_goal = miranda.pandaRelative[0].calcRelGoal(miranda.getMirPose()+miranda.pandaBaseRel, goal_pos)
-        # print("Panda Goal is: ")
-        # print(posePanda_goal)
-        # miranda.panda.movePose(posePanda_goal)
-        # rospy.loginfo("GoalPose is: ")
-        # rospy.loginfo(goal_pos)
         
         print("Panda: Moving remaining dist ")
         time.sleep(0.5)
