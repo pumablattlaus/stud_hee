@@ -7,17 +7,17 @@ import moveit_commander
 from geometry_msgs.msg import PoseStamped, Point, Quaternion, Twist, Pose
 import moveit_msgs.msg
 from actionlib_msgs.msg import *
+import std_msgs.msg as std_msg
 import numpy as np
 # import quaternion
 from panda_grasping import *
 import tf
 from tf import transformations
+from tf import ExtrapolationException
 
 class MyPoint(Point):
     def __init__(self, pos=(0.0, 0.0, 0.0)):
         if type(pos) == Point:
-            # super(myPoint, self).__init__(pos)
-            # self = pos
             self.asArray = np.array(pos.__reduce__()[2])
         else:
             self.asArray = np.array(pos)
@@ -55,11 +55,6 @@ class MyOrient(Quaternion):
         return MyOrient(transformations.quaternion_multiply(self.asArray, o2.asArray))
 
     def __sub__(self, o2):
-        # q1 = quaternion.quaternion(*self.__reduce__()[2])
-        # q2 = quaternion.quaternion(*o2.__reduce__()[2])
-        # # q3 = quaternion.quaternion(np.quaternion.conjugate(q1) * q2)
-        # q3 = q1.conjugate()*q2
-        # o_out = MyOrient(q3.__reduce__()[1])
         q_inv = transformations.quaternion_conjugate(o2.asArray)
         return MyOrient(transformations.quaternion_multiply(self.asArray, q_inv))
 
@@ -130,6 +125,7 @@ class PandaMove(object):
     def __init__(self, group_name="panda_arm", ns='', robot_description="robot_description", listener = None):
         moveit_commander.roscpp_initialize([])
         self.ns = ns
+        self.syncTime = rospy.Publisher("/syncTime", std_msg.Bool, queue_size=1)
         self.robot = moveit_commander.RobotCommander(ns=ns, robot_description=robot_description)
         # interface to a planning group (group of joints). used to plan and execute motions
         try:
@@ -191,11 +187,20 @@ class PandaMove(object):
             waypoints,  # waypoints to follow
             0.01,  # eef_step
             0.0)  # jump_threshold
-        plan = self.velocity_scale(plan, vel)
+        # plan = self.velocity_scale(plan, vel)
         self.move_group.execute(plan, wait=True)
         
     def movePoseTotal(self, pose=MyPose(), linear=False):
-        (pos, rot) = self.listener.lookupTransform(self.ns+"/panda_link0", "map", rospy.Time.now())
+        try:
+            now = rospy.Time.now()
+            self.listener.waitForTransform(self.ns+"/panda_link0", "map", now, rospy.Duration(4.0))
+            (pos, rot) = self.listener.lookupTransform(self.ns+"/panda_link0", "map", now)
+        except ExtrapolationException:
+            self.syncTime.publish(std_msg.Bool(True))
+            time.sleep(0.5)
+            now = rospy.Time.now()
+            self.listener.waitForTransform(self.ns+"/panda_link0", "map", now, rospy.Duration(4.0))
+            (pos, rot) = self.listener.lookupTransform(self.ns+"/panda_link0", "map", now)
         
         poseRel = MyPose(tuple(pos), tuple(rot))
         poseRel = pose-poseRel
