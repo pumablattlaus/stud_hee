@@ -10,6 +10,8 @@ import time
 import math
 import numpy as np
 from my_functions import MyPose, MyPoint, MyOrient, PandaGoals, PandaMove, MirNav2Goal
+# from lib.match_geometry import MyPose, MyPoint, MyOrient
+# from lib.match_robots import PandaGoals, PandaMove, MirNav2Goal
 
 
 class MirandaNav2Goal(MirNav2Goal):
