@@ -143,9 +143,9 @@ if __name__ == '__main__':
         # my_nav.getSendGoal()
         
         miranda.movePandaAxis() 
-
+        
         goal_pos = miranda.getGoalCommandLine(False)
-        mir_pose = miranda.calculateMirGrippingPose(goal_pos, pose_num)
+        mir_pose = miranda.calculateMirGrippingPose(goal_pos, pose_num) # TODO: copy.deepcopy(goalpose)?
         rospy.loginfo("Mir gripping Pose is: ")
         rospy.loginfo(mir_pose)
         miranda.sendGoalPos(mir_pose)
@@ -158,7 +158,7 @@ if __name__ == '__main__':
         print("Panda: Moving remaining dist ")
         time.sleep(0.5)
         
-        miranda.panda.movePoseTotal(goal_pos, linear=True)
+        miranda.panda.movePoseTotalViaHand(goal_pos)
         # rate.sleep()
         time.sleep(0.1)
         print("Start again? y/n:  ")
