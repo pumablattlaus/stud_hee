@@ -139,6 +139,7 @@ class PandaMove(object):
             self.movePose(poseRel)
             
     def movePoseTotalViaHand(self, pose=MyPose()):
+        """ using transformation from hand to map to move remaining distance"""
         try:
             now = rospy.Time.now()
             self.listener.waitForTransform(self.ns+"/panda_hand", "map", now, rospy.Duration(4.0))
