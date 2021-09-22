@@ -11,83 +11,10 @@ import std_msgs.msg as std_msg
 import numpy as np
 # import quaternion
 from panda_grasping import *
+from match_geometry import *
 import tf
 from tf import transformations
 from tf import ExtrapolationException
-
-class MyPoint(Point):
-    def __init__(self, pos=(0.0, 0.0, 0.0)):
-        if type(pos) == Point:
-            self.asArray = np.array(pos.__reduce__()[2])
-        else:
-            self.asArray = np.array(pos)
-        super(MyPoint, self).__init__(*(self.asArray))
-
-        # 1 hinten anfuegen
-        self.asArray = np.append(self.asArray, 0)
-
-    def __add__(self, p2):
-        p_out = MyPoint()
-        p_out.x = self.x + p2.x
-        p_out.y = self.y + p2.y
-        p_out.z = self.z + p2.z
-
-        return p_out
-
-    def __sub__(self, p2):
-        p_out = MyPoint()
-        p_out.x = self.x - p2.x
-        p_out.y = self.y - p2.y
-        p_out.z = self.z - p2.z
-
-        return p_out
-
-
-class MyOrient(Quaternion):
-    def __init__(self, quatern=(0.0, 0.0, 0.0, 1.0)):
-        if type(quatern) == Quaternion:
-            self.asArray = np.array(quatern.__reduce__()[2])
-        else:
-            self.asArray = np.array(quatern)
-        super(MyOrient, self).__init__(*(self.asArray))
-
-    def __add__(self, o2):
-        return MyOrient(transformations.quaternion_multiply(self.asArray, o2.asArray))
-
-    def __sub__(self, o2):
-        q_inv = transformations.quaternion_conjugate(o2.asArray)
-        return MyOrient(transformations.quaternion_multiply(self.asArray, q_inv))
-
-
-class MyPose(Pose):
-    def __init__(self, pos=(0.0, 0.0, 0.0), quatern=(0.0, 0.0, 0.0, 1.0)):
-        point = MyPoint(pos)
-        orient = MyOrient(quatern)
-        super(MyPose, self).__init__(point, orient)
-        self.position = point
-        self.orientation = orient
-
-    def __add__(self, p2):
-        p_out = MyPose()
-        p_out.position = self.position + p2.position
-        p_out.orientation = self.orientation + p2.orientation
-        return p_out
-
-    def __sub__(self, p2):
-        p_out = MyPose()
-        p_out.position = self.position - p2.position
-        p_out.orientation = self.orientation - p2.orientation
-        return p_out
-    
-    def rotateVector(self, vec=None, rot=None):
-        if vec == None:
-            vec = self.position.asArray
-        if rot == None:
-            rot = self.orientation.asArray
-        rot_conj = transformations.quaternion_conjugate(rot)
-        trans = transformations.quaternion_multiply(transformations.quaternion_multiply(rot_conj, vec), rot) [:3]
-        return MyPoint(trans)
-
 
 class PandaGoals(object):
     def __init__(self, pose_relative=MyPose(), axis_goal=[]):

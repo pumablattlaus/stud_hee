@@ -10,12 +10,14 @@ import time
 import math
 import numpy as np
 from my_functions import MyPose, MyPoint, MyOrient, PandaGoals, PandaMove, MirNav2Goal
+# from lib.match_geometry import MyPose, MyPoint, MyOrient
+# from lib.match_robots import PandaGoals, PandaMove, MirNav2Goal
 
 
 class MirandaNav2Goal(MirNav2Goal):
     def __init__(self, mir_prefix="", panda_prefix="", panda_description="robot_description"):
         super(MirandaNav2Goal, self).__init__(mir_prefix=mir_prefix)
-        self.syncTime = rospy.Publisher("/syncTime", std_msg.Bool, queue_size=1)
+        # self.syncTime = rospy.Publisher("/syncTime", std_msg.Bool, queue_size=1)
         self.panda = PandaMove("panda_arm", ns=panda_prefix, robot_description=panda_description)
         # Relative stable Poses to work from (use joint angles and relative Pose) 
         self.pandaRelative = []
@@ -70,7 +72,7 @@ class MirandaNav2Goal(MirNav2Goal):
             # plan = panda_robot.velocity_scale(plan, 0.9)
             res = self.panda.move_group.execute(plan, wait=True)
             if not res:
-                self.syncTime.publish(std_msg.Bool(True))
+                self.panda.syncTime.publish(std_msg.Bool(True))
                 res = self.panda.move_group.execute(plan, wait=True)
             return res
 
@@ -88,7 +90,7 @@ class MirandaNav2Goal(MirNav2Goal):
                       0.1547569044896521, 2.8163922914174484, 1.33943788516301]
         self.panda.move_group.set_joint_value_target(target)
         plan = self.panda.move_group.plan()
-        self.check_execute_plan(plan)
+        return self.check_execute_plan(plan)
     
     def movePandaReplan(self, pose_num=0):
         res = miranda.movePanda(pose_num)
@@ -151,7 +153,7 @@ if __name__ == '__main__':
         time.sleep(0.5)
         while not miranda.is_ready():
             time.sleep(0.1)
-        # res = miranda.movePanda(pose_num)
+
         miranda.movePandaReplan(pose_num)
         
         print("Panda: Moving remaining dist ")
