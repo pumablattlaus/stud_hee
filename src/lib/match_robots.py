@@ -122,7 +122,7 @@ class PandaMove(object):
             now = rospy.Time.now()
             self.listener.waitForTransform(self.ns+"/panda_link0", "map", now, rospy.Duration(4.0))
             (pos, rot) = self.listener.lookupTransform(self.ns+"/panda_link0", "map", now)
-        except ExtrapolationException:
+        except: # ExtrapolationException:
             self.syncTime.publish(std_msg.Bool(True))
             time.sleep(0.5)
             now = rospy.Time.now()
