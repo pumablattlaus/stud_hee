@@ -118,6 +118,7 @@ class PandaMove(object):
         self.move_group.execute(plan, wait=True)
         
     def movePoseTotal(self, pose=MyPose(), linear=False):
+        """ Not working properly use movePoseTotalViaHand instead"""
         try:
             now = rospy.Time.now()
             self.listener.waitForTransform(self.ns+"/panda_link0", "map", now, rospy.Duration(4.0))
@@ -136,6 +137,23 @@ class PandaMove(object):
             self.movePoseLin(poseRel)
         else:
             self.movePose(poseRel)
+            
+    def movePoseTotalViaHand(self, pose=MyPose()):
+        """ using transformation from hand to map to move remaining distance"""
+        try:
+            now = rospy.Time.now()
+            self.listener.waitForTransform(self.ns+"/panda_hand", "map", now, rospy.Duration(4.0))
+            (pos, rot) = self.listener.lookupTransform(self.ns+"/panda_hand", "map", now)
+        except: # ExtrapolationException:
+            self.syncTime.publish(std_msg.Bool(True))
+            time.sleep(0.5)
+            now = rospy.Time.now()
+            self.listener.waitForTransform(self.ns+"/panda_hand", "map", now, rospy.Duration(4.0))
+            (pos, rot) = self.listener.lookupTransform(self.ns+"/panda_hand", "map", now)
+        
+        poseRel = MyPose(tuple(pos), tuple(rot))
+        poseRel = pose-poseRel
+        self.moveLin(poseRel)
             
     def moveLin(self, pose=MyPose(), vel=1):
         waypoints = []
@@ -285,3 +303,29 @@ if __name__ == '__main__':
     
     panda_goal = PandaGoals(p1, a1)
     print(panda_goal)
+    
+    # TEST PANDA:
+    rospy.init_node("match_Robots")
+    
+    mir_prefix = "/miranda/mir"
+    panda_prefix = "/miranda/panda"
+    panda_description = "/miranda/panda/robot_description"
+    try:
+        panda = PandaMove(group_name="panda_arm", ns=panda_prefix, robot_description=panda_description, listener = None)
+    except RuntimeError:
+            mir_prefix = ""
+            panda_prefix = ""
+            panda_description = "robot_description"
+            panda = PandaMove(group_name="panda_arm", ns=panda_prefix, robot_description=panda_description, listener = None)
+    
+    panda.move_group.set_pose_reference_frame("/miranda/panda/panda_link0")
+    target = [-0.198922703533319, 1.3937412735955756, 0.11749296106956011, -1.312658217933717, -0.1588243463469876,
+              2.762937863667806, 0.815807519980951] 
+    panda.move_group.set_joint_value_target(target)
+    plan = panda.move_group.plan()
+    res = panda.move_group.execute(plan, wait=True)
+    
+    # panda.move_group.set_pose_reference_frame("panda_link0")
+    print("============ ROBOT POSE")
+    p = panda.move_group.get_current_pose()
+    print(p)

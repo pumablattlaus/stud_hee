@@ -1,7 +1,0 @@
-<library path="lib/my_panda_controllers">
-  <class name="my_panda_controllers/CartesianVelocityMyController" type="my_panda_controllers::CartesianVelocityMyController" base_class_type="controller_interface::ControllerBase">
-    <description>
-      A controller that listens for velocities on a topic
-    </description>
-  
-</library>
