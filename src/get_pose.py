@@ -55,6 +55,7 @@ display_trajectory_publisher = rospy.Publisher('/move_group/display_planned_path
 planning_frame = move_group.get_planning_frame()
 print("============ Planning frame: %s" % planning_frame)
 
+move_group.set_end_effector_link("panda_hand")
 # We can also print the name of the end-effector link for this group:
 eef_link = move_group.get_end_effector_link()
 print("============ End effector link: %s" % eef_link)
